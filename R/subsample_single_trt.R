@@ -633,7 +633,7 @@ subsample_single_trt <- function(data,
   }
 
   # add cost if applicable
-  if(!is.null(cost)){
+  if(!is.null(cost_per_sample)){
     out.df <- out.df %>%
       dplyr::mutate(sample_cost = n_samples*cost_per_sample)
   }

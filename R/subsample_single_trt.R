@@ -624,9 +624,10 @@ subsample_single_trt <- function(data,
         ann %>%
           dplyr::rename(min_detectable_eff_size = target_eff_size) %>%
           dplyr::mutate(group = "target") %>%
-          dplyr::select(-coverage_rank,
-                        -ann,
-                        -cost)
+          dplyr::select(power,
+                        min_detectable_eff_size,
+                        group,
+                        n_samples)
       ) %>%
       dplyr::relocate(group) %>%
       dplyr::arrange(group, power)

@@ -13,7 +13,7 @@
 #' @examples if(FALSE){subsample_single_trt(boots = boots, pilot = pilot_single_trt)}
 subsample_single_trt <- function(data,
                                pilot,
-                               power = c(80,70),
+                               power = c(80),
                                target_eff_size = NULL,
                                cost_per_sample = NULL,
                                seed = 1){

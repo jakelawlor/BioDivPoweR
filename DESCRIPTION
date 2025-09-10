@@ -1,16 +1,15 @@
 Package: BioDivSampler
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Analyze Power to Detect Change in Biodiversity Sampling Schemes
 Version: 0.1.0
 Authors@R: c(
     person(
-      "Jane", "Doe",
-      email = "jane@example.com",
+      "Jake", "Lawlor",
+      email = "jake.lawlor@mail.mcgill.ca",
       role = c("aut", "cre")
     )
   )
-Description: More about what it does (maybe more than one line).
-    Continuation lines should be indented.
+Description: BioDivSampler allows users to apply a simulation-based workflow (Tekwa et al., 2025) to user-supplied pilot data from a single-treatment, or two-treatment biodiversity sampling scheme. 
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true

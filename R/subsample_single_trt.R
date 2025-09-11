@@ -23,7 +23,7 @@ subsample_single_trt <- function(data,
 
   cat("Subsampling bootstrapped communities...\n")
 
-  # rescale coverage ----------------------------------------------------
+  # rescale coverage ----------------------------------------------
   # in boots, we have the true coverage at every sample in each site.
   # Here, we'll assume the max sample number results in 100% coverage.
 
@@ -232,7 +232,7 @@ subsample_single_trt <- function(data,
                                           T,F),
                # when eff size is zero, calculate whether log2 change is within
                # the limits of the zero effect size bin
-               eff_size_num == 0 ~ ifelse(abs(log2diff2) <= zero_bin_width,
+               eff_size_num == 0 ~ ifelse(abs(log2diff2) == 0,
                                           T,F))) %>%
     dplyr::mutate(abs_eff_size = abs(eff_size_num)) %>%
     dplyr::group_by(abs_eff_size, coverage_rank, coverage) %>%
@@ -290,7 +290,9 @@ subsample_single_trt <- function(data,
       dplyr::arrange(abs_eff_size) %>%
       # take the first
       dplyr::slice(1) %>% dplyr::ungroup() %>%
-      dplyr::mutate(power = .x)
+      dplyr::mutate(power = .x) %>%
+      # remove the coverage = 100 point
+      dplyr::filter(coverage != 1)
   )
 
 
@@ -556,19 +558,14 @@ subsample_single_trt <- function(data,
                cost = y) %>%
        dplyr::mutate(cost = scales::dollar(round(cost,0)))
 
-      ann <- ann %>% dplyr::left_join(cost_to_reach_target) %>%
+      ann <- ann %>% dplyr::left_join(cost_to_reach_target,
+                                      by = dplyr::join_by(coverage_rank)) %>%
         dplyr::mutate(ann = paste0(n_samples,"\n",cost))
 
     } # end if cost
 
-    # ann <- data.frame(target_eff_size = target_eff_size,
-    #                   coverage_rank = coverage_rank_to_reach_target$coverage_rank,
-    #                   n = coverage_n_to_reach_target,
-    #                   power = as.character(coverage_rank_to_reach_target$power),
-    #                   coverage = coverage_value_to_reach_target)
+
     p3 <- p3 +
-      # add segment at coverage value to reach target
-      # it will go from numnber of samples at the top to the regression line
       ggplot2::geom_segment(data = ann,
                    ggplot2::aes(x = coverage_rank,
                        xend = coverage_rank,

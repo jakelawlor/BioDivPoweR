@@ -9,7 +9,6 @@
 #' @param min_exp_n The threshold number of simulated pairs to qualify a given effect size bin for retention. Higher `min_exp_n` values will offer greater resolution in following steps, but will decrease the number of effect sizes that qualify.
 #' @param seed Random seed. Defaults to 1 so runs of the same data will provide the same answers, but since the simulations all rely on random draws, changing the seed will result in different answers.
 #'
-#'
 #' @returns a tibble of `min_exp_n` simulated communities, rarified to equal coverage, within all effect size bins that qualify. Additionally, prints a histogram of simulated community richness values, highlighting the bins that are kept for the next step.
 #' @export
 #'

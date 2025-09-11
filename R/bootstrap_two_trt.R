@@ -13,7 +13,7 @@
 #' @returns a tibble of `min_exp_n` simulated communities, rarified to equal coverage, within all effect size bins that qualify. Additionally, prints a histogram of simulated community richness values, highlighting the bins that are kept for the next step.
 #' @export
 #'
-#' @examples
+#' @examples if(FALSE){boostrap_two_trt(pilot2, category_col = "veg_type")}
 bootstrap_two_trt <- function(pilot,
                               category_col = NULL,
                               n_boots = 5000,

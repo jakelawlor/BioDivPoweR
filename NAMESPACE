@@ -2,6 +2,7 @@
 
 export("%>%")
 export(bootstrap_single_trt)
+export(bootstrap_two_trt)
 export(cool_matlab)
 export(find_coverage)
 export(find_eff_sites)

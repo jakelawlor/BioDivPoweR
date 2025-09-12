@@ -11,7 +11,7 @@
 #' @export
 #'
 #' @examples if(FALSE) subsample_two_trts(boots2)
-subsample_two_trt <- function(data,
+subsample_two_trts <- function(data,
                               pilot,
                               power = c(80),
                               target_eff_size = NULL,

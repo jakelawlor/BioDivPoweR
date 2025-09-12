@@ -219,13 +219,13 @@ subsample_two_trts <- function(data,
     ggplot2::guides(color = ggplot2::guide_colorbar(theme = ggplot2::theme(legend.title.position = "top"))) +
     ggplot2::theme(panel.grid = ggplot2::element_blank())
 
-  # find the width of the smallest bin
-  zero_bin_width_0 <- df %>%
-    dplyr::distinct(eff_size_num) %>%
-    dplyr::arrange(abs(eff_size_num)) %>%
-    dplyr::slice(2) %>% dplyr::pull()
-  zero_bin_width <- abs(zero_bin_width_0)/2
-  rm(zero_bin_width_0)
+ ## find the width of the smallest bin
+ #zero_bin_width_0 <- df %>%
+ #  dplyr::distinct(eff_size_num) %>%
+ #  dplyr::arrange(abs(eff_size_num)) %>%
+ #  dplyr::slice(2) %>% dplyr::pull()
+ #zero_bin_width <- abs(zero_bin_width_0)/2
+ #rm(zero_bin_width_0)
 
 
   # count correct detections ------------------------------------------------
@@ -272,8 +272,8 @@ subsample_two_trts <- function(data,
     ggplot2::labs(x = "Coverage (%)",
                   y = "Proportion Correct Direction",
                   color = "Absolute\nEffect Size") +
-    ggplot2::theme(legend.position = "right") +
-    ggplot2::theme(legend.key.width = ggplot2::unit(12,"pt"),
+    ggplot2::theme(legend.position = "right",
+                   legend.key.width = ggplot2::unit(12,"pt"),
                    legend.key.height = ggplot2::unit(40,"pt"),
                    panel.grid = ggplot2::element_blank()) +
     ggplot2::guides(color = ggplot2::guide_colorbar(theme = ggplot2::theme(legend.title.position = "top"))) +
@@ -379,7 +379,8 @@ subsample_two_trts <- function(data,
                   x = "Coverage (%)",
                   fill = "Absolute\nEffect Size",
                   color = "Power") +
-    ggplot2::theme(panel.grid = ggplot2::element_blank()) +
+    ggplot2::theme(panel.grid = ggplot2::element_blank(),
+                   legend.background = ggplot2::element_blank()) +
     ggplot2::geom_hline(yintercept = 0,
                         linewidth = .2)
 
@@ -430,14 +431,20 @@ subsample_two_trts <- function(data,
     .x = pilot_coverage_rescale,
     .f = ~BioDivSampler:::find_eff_sites(.x, coverage_seq)
   )
+
   # now we have the number of sites in the empirical community that would
   # allow us to reach target coverage of coverage_seq()
   sec_axis_labels <- pilot_n_sites
 
   # add dollar signs, and original labels underneath
-  sec_axis_labels <- c(
-    paste0(community_types[[1]],":\n",community_types[[2]],":"),
-    paste0(pilot_n_sites[[1]],"\n", pilot_n_sites[[2]]))
+  # Replace first element of each vector
+  sec_axis_labels <- Map(function(vec, label) {
+    vec[1] <- paste0(label, ": ", vec[1])
+    vec
+  }, sec_axis_labels, community_types)
+
+  sec_axis_labels <- paste0(sec_axis_labels2[[1]],"\n", sec_axis_labels2[[2]])
+
 
   # add cost, if applicable, to second axis labels
   if(!is.null(cost_per_sample)){
@@ -446,10 +453,10 @@ subsample_two_trts <- function(data,
     cost <- ((pilot_n_sites[[1]] + pilot_n_sites[[2]]) * cost_per_sample)
 
     # add dollar signs, and original labels underneath
-    sec_axis_labels[2:42] <- paste0(scales::dollar(round(cost,0)),"\n", sec_axis_labels[2:42])
+    sec_axis_labels[seq(3,41,by = 4)] <- paste0(scales::dollar(round(cost[seq(3,41,by = 4)],0)),"\n", sec_axis_labels[seq(3,41,by = 4)])
 
     # make only one of every 4 costs show.
-    sec_axis_labels[2:41][c(T,F,T,T)] <- gsub("^.*?\\n","",sec_axis_labels[2:41][c(T,F,T,T)])
+  #  sec_axis_labels[c(1, seq(2,40,by = 2))] <- gsub("^.*?\\n","",sec_axis_labels[seq(3, 41, by=4)])
 
   }
 
@@ -459,14 +466,14 @@ subsample_two_trts <- function(data,
     suppressWarnings(
       p3 <- p3 +
         ggplot2::scale_x_continuous(
-          breaks = seq(0,40,by=3),
-          labels = round(coverage_seq*100)[c(T,F,F)],
+          breaks = seq(0,40,by=2),
+          labels = round(coverage_seq*100)[c(T,F)],
           sec.axis = ggplot2::sec_axis(~.,
-                                       breaks = seq(-1,40,by=2),
+                                       breaks = seq(0,40,by=2),
                                        labels = c(sec_axis_labels[c(T,F)]),
                                        name = "Sample n in pilot community")
         ) +
-        ggplot2::theme(axis.text.x.top = ggplot2::element_text(hjust = c(1,rep(.5, times = 20))))
+        ggplot2::theme(axis.text.x.top = ggplot2::element_text(hjust = c(.95,rep(.5, times = 20))))
     )
   )
 
@@ -646,7 +653,7 @@ subsample_two_trts <- function(data,
       # add annotation at number of samples
       ggplot2::geom_text(data = ann_sum,
                          ggplot2::aes(x = coverage_rank,
-                                      y = 0.01,
+                                      y = 0.025,
                                       label = paste0("T = ",ann),
                                       color = power),
                          show.legend = F,
@@ -657,7 +664,7 @@ subsample_two_trts <- function(data,
                          lineheight = .85,
                          fontface = "bold") +
       ggplot2::geom_text(data = ann_sum,
-                         ggplot2::aes(x = 0,
+                         ggplot2::aes(x = 4,
                                       y = target_eff_size,
                                       label = paste0("T = ",round(target_eff_size,2))),
                          hjust = 0,

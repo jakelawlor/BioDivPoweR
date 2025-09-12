@@ -1,3 +1,16 @@
+#' Subsample bootstrapped communities from two treatments
+#'
+#' @param data bootstrap tibble from `bootstrap_two_trt`
+#' @param pilot species-by-site matrix from pilot survey with a column for treatment
+#' @param power statistical power with which the user wants to detect richness change (defaults to 80)
+#' @param target_eff_size if supplied, the level of richness change the user wants to detect (in log2 ratio units).
+#' @param cost_per_sample cost per unit sample (linear only), which will add an axis to output plots for total cost per unit power.
+#' @param seed random seed. Defaults to 1 so repeat runs will be identical, but since simulations rely on random draws, changing the seed will result in different answers.
+#'
+#' @returns list of plots.
+#' @export
+#'
+#' @examples if(FALSE) subsample_two_trts(boots2)
 subsample_two_trt <- function(data,
                               pilot,
                               power = c(80),

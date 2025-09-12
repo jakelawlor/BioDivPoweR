@@ -13,7 +13,7 @@
 #' @export
 #'
 #' @examples if(FALSE){boostrap_two_trt(pilot2, category_col = "veg_type")}
-bootstrap_two_trt <- function(pilot,
+bootstrap_two_trts <- function(pilot,
                               category_col = NULL,
                               n_boots = 5000,
                               n_eff_size_bins = 40,

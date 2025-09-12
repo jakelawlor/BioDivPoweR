@@ -2,10 +2,11 @@
 
 export("%>%")
 export(bootstrap_single_trt)
-export(bootstrap_two_trt)
+export(bootstrap_two_trts)
 export(cool_matlab)
 export(find_coverage)
 export(find_eff_sites)
 export(find_target_detection_rate)
 export(subsample_single_trt)
+export(subsample_two_trt)
 importFrom(magrittr,"%>%")

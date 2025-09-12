@@ -443,7 +443,7 @@ subsample_two_trts <- function(data,
     vec
   }, sec_axis_labels, community_types)
 
-  sec_axis_labels <- paste0(sec_axis_labels2[[1]],"\n", sec_axis_labels2[[2]])
+  sec_axis_labels <- paste0(sec_axis_labels[[1]],"\n", sec_axis_labels[[2]])
 
 
   # add cost, if applicable, to second axis labels

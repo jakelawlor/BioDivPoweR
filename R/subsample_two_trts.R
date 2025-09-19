@@ -16,7 +16,7 @@ subsample_two_trts <- function(data,
                               power = c(80),
                               target_eff_size = NULL,
                               cost_per_sample = NULL,
-                              seed = 1){
+                              seed = NULL){
 
 
   # set random seed
@@ -487,7 +487,7 @@ subsample_two_trts <- function(data,
   #    coverage, we need to first pick only the treatment with the lower of the two coverages.
   min_pilot_coverage <- purrr::map2(
     .x = pilot_coverage_rescale,
-    .y = pilot %>% dplyr::count(veg_score) %>% tibble::deframe() %>% as.list,
+    .y = pilot %>% dplyr::count(across(2)) %>% tibble::deframe() %>% as.list,
     .f = ~.x[.y]
   )
 

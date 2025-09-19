@@ -5,17 +5,15 @@
 \title{Subsample bootstrapped communities to assess effect of sampling effort on detectable effect size}
 \usage{
 subsample_single_trt(
-  data,
+  boots,
   pilot,
   power = c(80),
   target_eff_size = NULL,
   cost_per_sample = NULL,
-  seed = 1
+  seed = NULL
 )
 }
 \arguments{
-\item{data}{tibble of bootstrapped communities across multiple effect sizes. Output from `bootstrap_single_trt`.}
-
 \item{pilot}{original pilot study. Identical to the pilot input in `bootstrap_single_trt`}
 
 \item{power}{statistical power with which the user wants to detect richness change (defaults to 80)}
@@ -25,6 +23,8 @@ subsample_single_trt(
 \item{cost_per_sample}{cost per unit sample (linear only), which will add an axis to output plots for total cost per unit power.}
 
 \item{seed}{random seed. Defaults to 1 so repeat runs will be identical, but since simulations rely on random draws, changing the seed will result in different answers.}
+
+\item{data}{tibble of bootstrapped communities across multiple effect sizes. Output from `bootstrap_single_trt`.}
 }
 \value{
 list of plots.

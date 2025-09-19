@@ -3,6 +3,7 @@
 #' `bootstrap_two_trt` creates `n_boots` simulated communities from a pilot biodiversity survey, pulled from randomly drawn sites from the `pilot` survey, with replacement. Bootstrapped pairs are compared for differences in richness, and differences in richness (log2 ratio) are sorted into a histogram with `n_eff_size_bins` bins. When possible, `min_exp_n` experiments (pairs of simulated communities, rarefied to equal sample coverage) are retained and kept as the input for the following function.
 #'
 #' @param pilot species-by-site matrix from a pilot biodiversity survey with two treatments, in which the first column lists site names or codes, the second lists the site category or treatment, and all following columns are named with species names and contain binary (0-1) values. See `data("pilot_two_trts")` for an example.
+#' @param method power analysis type, `"single"` for sites with no treatment levels, `"two"` for a two-treatment analysis.
 #' @param category_col the column name in `pilot` that specifies the treatment of sampling sites.
 #' @param n_boots The number of simulated community pairs to bootstrap, which will be compared to each other for differences in species richness. Increasing the number of bootstrapped communities should result in more effect sizes (differences in richness between simulated pairs) qualifying for the power analysis (a histogram of richness differences from `n_boots` communities will be sorted into `n_eff_size_bins`, and bins that surpass the `min_exp_n` threshold will be retained for following steps).
 #' @param n_eff_size_bins n_eff_size_bins The total number of bins to separate the histogram of  richness differences detected between simulated communities. Increasing `n_eff_size_bins` can offer higher resolution in the following steps (more bins to qualify), but can result in "toothy" histograms in which sequential bins are not all filled. Decreasing `n_eff_size_bins` should fix "toothiness".
@@ -12,16 +13,23 @@
 #' @returns a tibble of `min_exp_n` simulated communities, rarified to equal coverage, within all effect size bins that qualify. Additionally, prints a histogram of simulated community richness values, highlighting the bins that are kept for the next step.
 #' @export
 #'
-#' @examples if(FALSE){boostrap_two_trt(pilot2, category_col = "veg_type")}
-bootstrap_two_trts <- function(pilot,
-                              category_col = NULL,
-                              n_boots = 5000,
-                              n_eff_size_bins = 40,
-                              min_exp_n = 40,
-                              seed = NULL){
+#' @examples if(FALSE){boostrap_pilot(data("pilot_single_trt"))}
+bootstrap_pilot <- function(pilot,
+                            method = "single",
+                            category_col = NULL,
+                            n_boots = 5000,
+                            n_eff_size_bins = 40,
+                            min_exp_n = 40,
+                            seed = NULL){
 
-  stopifnot("please specify the name of the treatment column in pilot dataset" = !is.null(category_col),
-            "Pilot data need two unique treatments" = length(unique(pilot[[category_col]])) == 2 )
+  if(method == "two" & is.null(category_col))
+    stop("Please specify the name of the treatment column in pilot dataset")
+  if(method == "two")
+    if(length(unique(pilot[[category_col]])) != 2)
+      stop("Two-treatment pilot must have 2 levels")
+  if(method == "single" & sum(sapply(pilot,is.character)) > 1)
+    stop("Single-treatment analyses should have only one character column")
+
 
   # set random seed
   set.seed(seed)
@@ -29,7 +37,7 @@ bootstrap_two_trts <- function(pilot,
   # create bootstrap arrays -------------------------------------------------
   cat("Bootstrapping empirical communities", n_boots,"times... \n")
   boot_arrays <- .create_boot_arrays(pilot,
-                                     method = "two",
+                                     method = method,
                                      category_col = category_col,
                                      n_boots = n_boots)
 

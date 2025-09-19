@@ -10,7 +10,7 @@ subsample_two_trts(
   power = c(80),
   target_eff_size = NULL,
   cost_per_sample = NULL,
-  seed = 1
+  seed = NULL
 )
 }
 \arguments{

@@ -11,12 +11,12 @@
 #' @export
 #'
 #' @examples if(FALSE){subsample_single_trt(boots = boots, pilot = pilot_single_trt)}
-subsample_single_trt <- function(data,
+subsample_single_trt <- function(boots,
                                pilot,
                                power = c(80),
                                target_eff_size = NULL,
                                cost_per_sample = NULL,
-                               seed = 1){
+                               seed = NULL){
 
   # set random seed
   set.seed(seed)
@@ -31,7 +31,7 @@ subsample_single_trt <- function(data,
   coverage_seq <- c(1,seq(from = 250, to = 10000, by = 250) %>% sqrt())/100
 
   # first, find the number of sites that correspond to each of the target coverages.
-  data2 <- data %>%
+  boots2 <- boots %>%
     dplyr::mutate(
       n_to_check_comm1 = purrr::map(
         .x = comm1_coverage,
@@ -57,10 +57,10 @@ subsample_single_trt <- function(data,
   # of sites needed to reach the coverage values across the waypoints
   # that we created for coverage scaling (1, 15, 22, etc..)
 
-  rm(data)
+  rm(boots)
 
   # sample richness at each n_to_check
-  data3 <- data2 %>%
+  boots3 <- boots2 %>%
     dplyr::mutate(
       comm1_rich = purrr::map2(.x = comm1_matrix,
                         .y = n_to_check_comm1,
@@ -104,7 +104,7 @@ subsample_single_trt <- function(data,
                           })
                         })
     )
-  rm(data2)
+  rm(boots2)
   # this adds two columns to the tibble:
   # comm1_rich, and comm2_rich, which list the richness observed at samples
   # of n_to_check sites of each community.
@@ -115,7 +115,7 @@ subsample_single_trt <- function(data,
 
   # find differences in richness between community 1 and community 2
   # at sample sizes that represent each coverage step.
-  df <- data3 %>%
+  df <- boots3 %>%
     # keep only effect size, and richness vectors at the coverage waypoints
     dplyr::select(eff_size, comm1_rich, comm2_rich) %>%
     dplyr::group_by(eff_size) %>%
@@ -139,7 +139,7 @@ subsample_single_trt <- function(data,
     # not sure what we should do with this in the future, but let's
     # manually change for now.
     dplyr::mutate(eff_size_num = as.numeric(eff_size))
-  rm(data3)
+  rm(boots3)
 
 
   # plot funnels within effect size bins

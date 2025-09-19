@@ -1,3 +1,16 @@
+#' Subsample bootstrapped communities
+#'
+#' Downsample bootstrapped communities to lower sample sizes representing a gradient of coverage values, and assess the proportion of correct-direction detections within each coverage interval.
+#'
+#' @param data tibble of bootstrapped communities across multiple effect sizes. Output from `bootstrap_single_trt`.
+#' @param pilot original pilot study. Identical to the pilot input in `bootstrap_single_trt`
+#' @param power statistical power with which the user wants to detect richness change (defaults to 80)
+#' @param target_eff_size if supplied, the level of richness change the user wants to detect (in log2 ratio units).
+#' @param cost_per_sample cost per unit sample (linear only), which will add an axis to output plots for total cost per unit power.
+#' @param seed random seed. Defaults to 1 so repeat runs will be identical, but since simulations rely on random draws, changing the seed will result in different answers.
+#'
+#' @returns list of plots.
+#' @export
 subsample_boots <- function(boots,
                            pilot,
                            method = "single",

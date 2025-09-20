@@ -4,5 +4,5 @@
 
 ```r
 install.packages("devtools")
-devtools::install_github("jakelawlor/BioDivSampler")
+devtools::install_github("jakelawlor/BioDivPoweR")
 ```

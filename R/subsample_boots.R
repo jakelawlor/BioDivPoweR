@@ -19,6 +19,12 @@ subsample_boots <- function(boots,
                            cost_per_sample = NULL,
                            seed = NULL){
 
+  # various checks
+  if(method == "single" & sum(sapply(pilot, is.character)) > 1)
+    stop(call.=F,"Singe-treatment analysis selected, but pilot contains multiple character columns. Please check.")
+  if(method == "two" & sum(sapply(pilot, is.character)) == 1)
+    stop(call.=F,"Two-treatment analysis selected, but pilot appears to be missing a category column. Please check.")
+
   # set random seed
   set.seed(seed)
 
@@ -33,7 +39,7 @@ subsample_boots <- function(boots,
 
   # subsample across coverages ---------------------------------------------
   subsamples <- .downsample_bootstraps(boots, coverage_seq, community_types)
-  rm(boots)
+  #rm(boots)
 
 
   # summarize downsamples ---------------------------------------------------
@@ -115,22 +121,34 @@ subsample_boots <- function(boots,
   # add a point along the y axis showing the probably presumed effect size
   # that could exist in our communities:
   # sd of boot differences for single-community
-  # richness-to-rarified-richness means for two communities
-
-  ### RETURN TO THIS --
-  # might have to edit bootstrap step to find SD or SE of bootstraps
+  # richness-to-rarified-richness mean for two communities
+  if(method == "two"){
+    p3 <- .add_true_effect(pilot, p3)
+  }
 
   # add samples for target effect size ========
+  target_ann <- NULL
   if(!is.null(target_eff_size)){
     target_ann <- .calc_site_to_reach_target(target_eff_size, power_au, pilot_coverage_rescale, coverage_seq, cost_per_sample, method)
     p3 <- .add_target_to_plot(p3, target_ann)
   }
 
+
+  # # save answers as df ------------------------------------------------------
+  # make a dataset of all relevant takeaways:
+  # - achieved minimal detectable effect size at
+
+  # get relevant values as dataframe
+  out.df <- .get_out_df(.pilot = pilot,
+              .pilot_minimum_detectable = pilot_minimum_detectable,
+              .target_ann = target_ann,
+              .cost_per_sample = cost_per_sample,
+              .target_eff_size = target_eff_size)
+
   # add to plot
-  out <- list(p0, p1, p2, p3)
+  out <- list(p0, p1, p2, p3, out.df)
 
-
-
+  return(out)
 
 }
 

@@ -343,6 +343,7 @@
 
         # add dollar signs, and original labels underneath, only to one in every 4
         sec_axis_labels[seq(3,41,by = 4)] <- paste0(scales::dollar(round(cost_labs[seq(3,41,by = 4)],0)),"\n", sec_axis_labels[seq(3,41,by = 4)])
+        sec_axis_labels
 
       }
     )
@@ -410,7 +411,7 @@
   pilot_minimum_detectable$pilot_ss <- switch(.method,
                                               "single" = ss,
                                               "two" = paste0(ss[[names(ss_coverage)]]," (",names(ss_coverage),")"))
-  pilot_minimum_detectable$pilot_achieved_cover <- ss_coverage
+  pilot_minimum_detectable$pilot_achieved_cover <- unlist(ss_coverage)
   pilot_minimum_detectable$pilot_achieved_rank <- pilot_coverage_rank
 
   return(pilot_minimum_detectable)
@@ -419,6 +420,7 @@
 
 
 # add lines to plot for achieved minimum detectable effect and sample size
+
 
 .add_minEff_at_sampleSize <- function(.p3, .pilot_minimum_detectable){
 
@@ -478,7 +480,12 @@
 # - start with target effect size
 # - approximate rank along regression line
 # - convert rank to sample size
-.calc_site_to_reach_target <- function(.target_eff_size, .power_au, .pilot_coverage_rescale, .coverage_seq, .cost_per_sample = cost_per_sample, .method){
+.calc_site_to_reach_target <- function(.target_eff_size = target_eff_size,
+                                       .power_au = power_au,
+                                       .pilot_coverage_rescale = pilot_coverage_rescale,
+                                       .coverage_seq = coverage_seq,
+                                       .cost_per_sample = cost_per_sample,
+                                       .method = method){
 
 
   # get the fitted model values (coverage rank) that correspond to the target effect size
@@ -528,13 +535,13 @@
     purrr::map(
       coverage_value_to_reach_target %>% split(f = .$power),
 
-      function(covgroup) {
+      function(powergroup) {
 
         # then, split by commuity and approximate with respective pilot_n_sites
         purrr::map(.x = switch(.method, "two" = pilot_n_sites,"single" = list(pilot_n_sites)),
                    .f = ~approx(c(0:40),
                                 .x,
-                                covgroup$coverage_rank) %>%
+                                powergroup$coverage_rank) %>%
                      tibble::as_tibble() %>%
                      dplyr::rename(coverage_rank = x,
                                    n_samples = y) %>%
@@ -546,6 +553,7 @@
 
 
 
+
     # merge all together
     ann <- coverage_rank_to_reach_target %>%
       dplyr::left_join(coverage_value_to_reach_target,
@@ -553,25 +561,57 @@
       dplyr::left_join(ss_to_reach_target, by = dplyr::join_by(power,coverage_rank))
 
     # add group annotation if method is two
-    if(.method == "single") {ann <- ann %>% dplyr::mutate(ann = n_samples)}
+    if(.method == "single") {ann <- ann %>% dplyr::mutate(ann = as.character(n_samples))}
     if(.method == "two") {ann <- ann %>% dplyr::mutate(ann = paste(n_samples, comm_group))}
+
+    # if any of the target values are NA, that probably means the requested power is too low
+
+    if(any(is.na(ann[,c("coverage_rank", "coverage_value")]))){
+      pow <- ann$power[is.na(ann$coverage_rank)]
+      eff <- ann$target_eff_size[is.na(ann$coverage_rank)]
+      lab <- paste0("effect size ", eff," at power ",pow)
+      lab <- paste0(lab, collapse = ", ")
+      warning(paste0("Requested effect size and/or power are outside augmented model range. They will be labeled on plot and returned as sample size zero.",
+                     "(",lab,")")
+              , call. = F)
+      ann <- ann %>% tidyr::replace_na(
+        list(coverage_rank = 0,
+             coverage_value  = 0,
+             n_samples = 0,
+             ann = "outside range"))
+
+      }
 
 
     ann_sum <- ann %>%
+      tidyr::pivot_wider(
+        names_from = comm_group,
+        values_from = n_samples,
+        names_prefix = "sample_size."
+      ) %>%
       dplyr::group_by(power, target_eff_size) %>%
-      dplyr::summarize(target_eff_size = unique(target_eff_size),
-                       coverage_rank = unique(coverage_rank),
-                       coverage_value = unique(coverage_value),
-                       n_samples = sum(n_samples),
-                       ann = paste0(ann,collapse = "\n"),
-                       .groups = "drop")
+      dplyr::summarize(
+        coverage_rank  = unique(coverage_rank),
+        coverage_value = unique(coverage_value),
+        sample_size.total  = sum(dplyr::c_across(starts_with("sample_size.")), na.rm = TRUE),
+        ann            = paste0(ann, collapse = "\n"),
+        dplyr::across(starts_with("sample_size."), function(x) max(x, na.rm=T)),   # keep the new columns
+        .groups = "drop"
+      )
+
+    # remove the n_samles.community 1 if single-treatment analysis (redundant)
+    if(.method == "single"){
+      ann_sum$sample_size.1 <- NULL
+      ann_sum$sample_size.2 <- NULL
+    }
+
 
     # if cost is supplied, add cost to annotation
     if(!is.null(.cost_per_sample)) {
 
       ann_sum <- ann_sum %>%
-        dplyr::mutate(total_cost = scales::dollar(n_samples * .cost_per_sample)) %>%
-        dplyr::mutate(ann = paste0(ann, "\n(",total_cost,")"))
+        dplyr::mutate(total_cost = scales::dollar(sample_size.total * .cost_per_sample)) %>%
+        dplyr::mutate(ann = paste0(ann, "\n",total_cost))
 
 
     } # end if cost
@@ -638,3 +678,74 @@
 
 }
 
+
+
+
+
+
+.add_true_effect <- function(.pilot, .p3){
+
+  # for two-treatment, first find n_sites for equal coverage
+  pilot_split <- .pilot %>% split(f = .[2])
+
+  pilot_cov <- purrr::map(
+    .x = pilot_split,
+    .f = ~find_coverage(colMeans(.x[,-c(1:2)])[colSums(.x[,-c(1:2)]) > 0],
+                        k = nrow(.x))
+  )
+
+  # find the number of sites in original communities at which coverage is equal
+  pilot_n_equal_cov <- c(
+    dplyr::first(which(pilot_cov[[1]] >= min(max(pilot_cov[[1]]),max(pilot_cov[[2]])))),
+    dplyr::first(which(pilot_cov[[2]] >= min(max(pilot_cov[[1]]),max(pilot_cov[[2]]))))
+  ) %>%
+    purrr::set_names(names(pilot_cov))
+
+  # identify the community that's equal-coverage n_samples is the same as its total n_samples.
+  # that one is the relatively udersampled community, for which richness will be measured once
+  # the community whose n_equal_coverage is not the same as its full n is the relatively
+  # oversampled community, for which richness will be measured by bootstrapping 50 times and
+  # finding mean richness in each bootstrap.
+  equal <- purrr::map2(
+    lapply(pilot_split, nrow),
+    pilot_n_equal_cov,
+    ~.x == .y
+  )
+  undersampled <- names(equal[equal == T]) %>% purrr::set_names(.)
+  oversampled <- names(equal[equal != T]) %>% purrr::set_names(.)
+
+  # undersampled_rich
+  # (unedited richness in the non-rarefied community)
+  rich_under <- sum(colSums(pilot_split[[undersampled]][,-c(1:2)],)>0) %>% purrr::set_names(undersampled)
+
+  # oversampled_rich
+  # rarefied richness in 50 iterations of the rarefied oversampled community
+  rich_rare_over <- purrr::map(
+    .x = c(1:50),
+    .f = ~sum(
+      colSums(pilot_split[[oversampled]][sample(nrow(pilot_split[[oversampled]]),
+                                                pilot_n_equal_cov[[oversampled]],
+                                          replace = F),][,-c(1:2)]) > 0)
+  ) %>% unlist() %>% mean() %>%  purrr::set_names(oversampled)
+
+  richness <- c( rich_rare_over, rich_under)[names(pilot_cov)]
+
+  true_eff <- log2(richness[1]/richness[2])
+
+
+  p3 <- .p3 +
+    ggplot2::annotate(geom = "rug",
+                      y = true_eff,
+                      linewidth = 1,
+                      color = "black") +
+    ggplot2::annotate(geom = "text",
+                      y = true_eff,
+                      x = 0,
+                      label = "True\ndifference",
+                      hjust = 0,
+                      lineheight = .85,
+                      size = 3.5)
+
+  return(p3)
+
+}

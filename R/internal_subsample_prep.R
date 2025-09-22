@@ -165,3 +165,56 @@
   return(prop_correct)
 
 }
+
+
+
+.get_out_df <- function(.pilot,
+                        .pilot_minimum_detectable,
+                        .target_ann = NULL,
+                        .cost_per_sample,
+                        .target_eff_size){
+
+  # first, arrange the achieved values
+  out.achieved <- .pilot_minimum_detectable %>%
+    dplyr::mutate(group = "achieved") %>%
+    dplyr::relocate(group) %>%
+    dplyr::rename(min_detectble_effect = achieved_min_eff_size,
+                  coverage = pilot_achieved_cover,
+                  sample_size = pilot_ss) %>%
+    dplyr::select(-pilot_achieved_rank)
+
+
+  pilot_ss <- switch(
+    class(.pilot[[2]]),
+    "numeric" = data.frame("sample_size.total" = nrow(.pilot)),
+    "character" = dplyr::count(.pilot, across(2)) %>%
+    tidyr::pivot_wider(values_from = n,
+                       names_from = 1,
+                       names_prefix = "sample_size.") %>%
+    dplyr::mutate(sample_size.total = sum(dplyr::c_across(starts_with("sample_size.")), na.rm = TRUE)))
+
+  out.achieved <- out.achieved %>%
+    dplyr::select(-sample_size) %>%
+    dplyr::bind_cols(pilot_ss)
+
+  out.df <- out.achieved
+
+  if(!is.null(.target_eff_size)){
+    out.target <- .target_ann %>%
+      dplyr::mutate(group = "target", .before = power ) %>%
+      dplyr::rename(min_detectble_effect = target_eff_size,
+                    coverage = coverage_value
+      ) %>%
+      dplyr::select(-coverage_rank, -ann)
+    out.df <- out.achieved %>% dplyr::bind_rows(out.target)
+  }
+
+
+  # add cost if applicable
+  if(!is.null(.cost_per_sample)){
+    out.df <- out.df %>%
+      dplyr::mutate(total_cost = sample_size.total*.cost_per_sample)
+  }
+
+  return(out.df)
+}

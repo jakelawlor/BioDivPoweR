@@ -39,7 +39,7 @@ subsample_boots <- function(boots,
 
   # subsample across coverages ---------------------------------------------
   subsamples <- .downsample_bootstraps(boots, coverage_seq, community_types)
-  #rm(boots)
+  rm(boots)
 
 
   # summarize downsamples ---------------------------------------------------

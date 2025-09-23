@@ -782,6 +782,7 @@
     ggplot2::annotate(geom = "rug",
                       y = true_eff,
                       linewidth = 1,
+                      length = ggplot2::unit(6,"pt"),
                       color = "black") +
     ggplot2::annotate(geom = "text",
                       y = true_eff,

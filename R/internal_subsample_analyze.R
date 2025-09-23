@@ -70,7 +70,7 @@
     .y = .min_detectable,
     .f = ~broom::augment(.x,
                          newdata = .y %>% tidyr::complete(
-                           data.frame(coverage_rank = c(0:40)) # complete to 0-40
+                           data.frame(coverage_rank = c(1:40)) # complete to 0-40
                          ),
                          interval = "confidence")
   ) %>%

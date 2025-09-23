@@ -30,7 +30,7 @@
     ggplot2::facet_wrap(~eff_size) +
     ggplot2::coord_cartesian(ylim = c(-1,1)) +
     ggplot2::scale_x_continuous(
-      breaks = seq(0,40,by=4),
+      breaks = seq(1,41,by=4),
       labels = round(c(.coverage_seq*100),0)[c(T,F,F,F)]
     ) +
     ggplot2::labs(x = "Coverage (%)",
@@ -65,9 +65,9 @@
     ggplot2::geom_point(data = . %>% dplyr::filter(coverage == 1),
                         shape = 21, fill ="white",
                         stroke = 1) +
-    ggplot2::scale_color_gradientn(colors = BioDivSampler:::cool_matlab()) +
+    ggplot2::scale_color_gradientn(colors = cool_matlab()) +
     ggplot2::scale_x_continuous(
-      breaks = seq(0,40,by=2),
+      breaks = seq(1,41,by=2),
       labels = round(c(.coverage_seq*100),0)[c(T,F)]
     ) +
     ggplot2::labs(x = "Coverage (%)",
@@ -106,10 +106,10 @@
                                  group = abs_eff_size,
                                  color = abs_eff_size)) +
     ggplot2::geom_line(linewidth = 1) +
-    ggplot2::scale_color_gradientn(colors = BioDivSampler:::cool_matlab(),
+    ggplot2::scale_color_gradientn(colors = cool_matlab(),
     ) +
     ggplot2::scale_x_continuous(
-      breaks = seq(0,40,by=2),
+      breaks = seq(1,41,by=2),
       labels = round(.coverage_seq*100)[c(T,F)]
     ) +
     ggplot2::scale_y_continuous(labels = scales::percent_format(scale = 1)) +
@@ -177,17 +177,17 @@
         pmax(max(abs(.power_au$.fitted)),max(abs(.min_detectable$abs_eff_size))),
         # minimum is -.05
         0),
-      xlim = c(0,40),
+      xlim = c(1,40),
       clip = "off"
     ) +
     ggplot2::scale_y_reverse(expand = ggplot2::expansion(mult = c(.1, 0))) +
-    ggplot2::scale_fill_gradientn(colors = BioDivSampler:::cool_matlab(),
+    ggplot2::scale_fill_gradientn(colors = cool_matlab(),
                                   limits = c(0,max(abs(.min_detectable$abs_eff_size)))) +
     ggplot2::scale_color_grey(end = .55,
                               start = 0) +
     ggplot2::scale_x_continuous(
-      breaks = seq(0,40,by=2),
-      labels = round(.coverage_seq*100)[c(T,F)]
+      breaks = seq(1,40,by=2),
+      labels = round(.coverage_seq[1:40]*100)[c(T,F)]
     ) +
     ggplot2::theme_bw() +
     ggplot2::labs(y = "Minimum Detectable Fold Change in Richness",
@@ -204,7 +204,7 @@
 
 
 
-#' Calculate N sites for second axis
+#' Calculate N sites for second axis - note- no longer needed!
 #'
 #' Use coverage in the pilot to estimate n samples to reach coverage intervals in pilot system.
 #'
@@ -214,7 +214,7 @@
 #' @param .community_types labels for community types. imported internally.
 #' @return character vector of axis 41 axis labels, corresponding to number of sites in empirical community (or communities) to reach coverage intervals.
 #' @noRd
-.rescale_pilot <- function(.pilot, .method, .coverage_seq, .community_types ){
+.rescale_pilot <- function(.pilot, .method, .coverage_seq ){
 
 
   # a. find average occupancy in pilot survey
@@ -271,9 +271,59 @@
 
 
 
+#' Find coverage in pilot community
+#'
+#' find coverage in the pilot community at 1-k samples.
+#'
+#' @param .pilot pilot dataset
+#' @param .method analysis method: "single" or "two" treatment.
+#' @param .coverage_seq coverage intervals to test. imported internally.
+#' @param .community_types labels for community types. imported internally.
+#' @return character vector of axis 41 axis labels, corresponding to number of sites in empirical community (or communities) to reach coverage intervals.
+#' @noRd
+.find_pilot_coverage <- function(.pilot, .method, .coverage_seq ){
+
+
+  # a. find average occupancy in pilot survey
+  # note that this is just mean occurrence for single-treatment,
+  # but mean treatment split by site category if two-treatment.
+  pilot_occupancy <- switch(
+    .method,
+    "single" =  colMeans(.pilot[,-c(1)]),
+    "two" =  purrr::map(
+      .x = .pilot %>% split(f = .pilot[[2]]),
+      .f = ~colMeans(.x[,-c(1:2)])[colSums(.x[,-c(1:2)]) > 0],
+      .progress = T
+    )
+  )
+
+  # b. find coverage at 1:10000 samples in pilot survey
+  # again, this will be one value if single-treatment,
+  # and a list of two if two-treatment.
+  pilot_coverage <- switch(
+    .method,
+    "single" = find_coverage(pilot_occupancy),
+    "two" = purrr::map(
+      .x = pilot_occupancy,
+      .f = ~find_coverage(occupancy = .x))
+  )
+
+  # if the highest value isn't enough, do it again for 5000
+  if(.method == "single" & max(unlist(pilot_coverage)) < .coverage_seq[40]){
+    pilot_coverage <- find_coverage(pilot_occupancy, 5000)}
+  if(.method == "two" & any(purrr::map(pilot_coverage, max) < .coverage_seq[40])){
+    pilot_coverage <- purrr::map(.x = pilot_occupancy, .f = ~find_coverage(.x, 5000))}
+
+
+  return(pilot_coverage)
+
+
+}
+
+
 #' Create labels for the second X-axis
 #'
-#' Use rescaled coverage to identify the number of samples in pilot communit(y/ies)
+#' Use pilot coverage to identify the number of samples in pilot communit(y/ies)
 #' that it would take to reach each coverage interval.
 #' If applicable, add cost.
 #'
@@ -283,17 +333,17 @@
 #' @param .method single or double analysis pipeline.
 #' @return character vector of axis 41 axis labels, corresponding to number of sites in empirical community (or communities) to reach coverage intervals.
 #' @noRd
-.calc_second_axis <- function(.pilot_coverage_rescale, .coverage_seq, .cost_per_sample, .method, .community_types){
+.calc_second_axis <- function(.pilot_coverage, .coverage_seq, .cost_per_sample, .method, .community_types){
   # remove unneeded variables
 
   # e. find number of samples in the empirical community (with coverage rescaled)
   # to reach the coverage values in coverage_seq.
   pilot_n_sites <- switch(
     .method,
-    "single" = find_eff_sites(.pilot_coverage_rescale, .coverage_seq),
+    "single" = find_eff_sites(.pilot_coverage, .coverage_seq[1:40]),
     "two" = purrr::map(
-      .x = .pilot_coverage_rescale,
-      .f = ~find_eff_sites(.x, .coverage_seq)
+      .x = .pilot_coverage,
+      .f = ~c(find_eff_sites(.x, .coverage_seq[1:40]))
     )
   )
   # returns a vector (or two vectors if method = 2) of number of sites to sample
@@ -350,6 +400,7 @@
 
   }
 
+
   return(sec_axis_labels)
 
 }
@@ -361,7 +412,7 @@
 # - convert to coverage (lower of two communities, if applicable)
 # - linearly approximate coverage to coverage rank (0-40)
 # - predict regression y at x = approx rank
-.calc_minEff_at_sampleSize <- function(.pilot, .pilot_coverage_rescale, .coverage_seq, .power_mod, .method){
+.calc_minEff_at_sampleSize <- function(.pilot, .pilot_coverage, .coverage_seq, .power_mod, .method){
 
   # 0. find sample sizes from 1 or both pilot communities to test
   ss <- switch(
@@ -377,10 +428,10 @@
   # if 2 trts, find respective and choose the lower
   ss_coverage <- switch(
     .method,
-    "single" = .pilot_coverage_rescale[ss],
+    "single" = .pilot_coverage[ss],
     "two" = {
       vals <- purrr::map2(
-        .x = .pilot_coverage_rescale,
+        .x = .pilot_coverage,
         .y = .pilot %>% dplyr::count(across(2)) %>% tibble::deframe() %>% as.list,
         .f = ~.x[.y] )
       vals[which.min(vals)]}
@@ -392,14 +443,11 @@
   # between 0 and 40, which is our "ranked" linear coverage scale.
   # use linear approximation from the points 0-40 and the values in coverage_seq.
   pilot_coverage_rank <- approx(x= .coverage_seq,
-                                y=c(0:40),
+                                y=c(1:41),
                                 xout = ss_coverage)$y
-  # NOTE ASK EDEN: here, I'm using the rescaled coverage scale (assuming that
-  # full coverage is the target detection rate. Is that right?)
-
 
   # step 2. predict achieved minimum detectable effect size
-  # at the coverage rank (0-40) from the pilot study
+  # at the coverage rank (1-41) from the pilot study
   pilot_minimum_detectable <- purrr::map(
     .x = .power_mod,
     .f = ~predict(.x,
@@ -482,7 +530,7 @@
 # - convert rank to sample size
 .calc_site_to_reach_target <- function(.target_eff_size = target_eff_size,
                                        .power_au = power_au,
-                                       .pilot_coverage_rescale = pilot_coverage_rescale,
+                                       .pilot_coverage = pilot_coverage,
                                        .coverage_seq = coverage_seq,
                                        .cost_per_sample = cost_per_sample,
                                        .method = method){
@@ -507,7 +555,7 @@
     # Interpolate coverage ranks against coverage sequence to get target coverage value
     coverage_value_to_reach_target <- purrr::map(
       .x = coverage_rank_to_reach_target %>% split(.$power),
-      .f = ~approx(c(0:40),
+      .f = ~approx(c(1:41),
                    .coverage_seq,
                    .x$coverage_rank) %>%
         tibble::as_tibble() %>%
@@ -520,10 +568,10 @@
     # re-establish number of sites to reach each rescaled coverage value
     pilot_n_sites <- switch(
       .method,
-      "single" = find_eff_sites(.pilot_coverage_rescale, .coverage_seq),
+      "single" = find_eff_sites(.pilot_coverage, .coverage_seq[1:40]),
       "two" = purrr::map(
-        .x = .pilot_coverage_rescale,
-        .f = ~find_eff_sites(.x, .coverage_seq)
+        .x = .pilot_coverage,
+        .f = ~find_eff_sites(.x, .coverage_seq[1:40])
       )
     )
 
@@ -539,7 +587,7 @@
 
         # then, split by commuity and approximate with respective pilot_n_sites
         purrr::map(.x = switch(.method, "two" = pilot_n_sites,"single" = list(pilot_n_sites)),
-                   .f = ~approx(c(0:40),
+                   .f = ~approx(c(1:40),
                                 .x,
                                 powergroup$coverage_rank) %>%
                      tibble::as_tibble() %>%
@@ -608,12 +656,9 @@
 
     # if cost is supplied, add cost to annotation
     if(!is.null(.cost_per_sample)) {
-
       ann_sum <- ann_sum %>%
         dplyr::mutate(total_cost = scales::dollar(sample_size.total * .cost_per_sample)) %>%
         dplyr::mutate(ann = paste0(ann, "\n",total_cost))
-
-
     } # end if cost
 
     return(ann_sum)

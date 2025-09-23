@@ -88,25 +88,25 @@ subsample_boots <- function(boots,
   ## add second axis ==============================
   # first, rescale the pilot community so that coverage reaches 1 at
   # the number of sites at which we are missing less than half of one species
-  pilot_coverage_rescale <- .rescale_pilot(pilot, method, coverage_seq, community_types)
+  pilot_coverage <- .find_pilot_coverage(pilot, method, coverage_seq)
 
   # calculate labels for second axis, corresponding to the number of samples
   # needed in the pilot communit(y/ies), and, if applicable, the cost.
-  sec_axis_labels <- .calc_second_axis(pilot_coverage_rescale, coverage_seq, cost_per_sample, method, community_types)
+  sec_axis_labels <- .calc_second_axis(pilot_coverage, coverage_seq, cost_per_sample, method, community_types)
 
   # add second axis to p3 plot
   suppressMessages(
     suppressWarnings(
       p3 <- p3 +
         ggplot2::scale_x_continuous(
-          breaks = seq(0,40,by=2),
-          labels = round(coverage_seq*100)[c(T,F)],
+          breaks = seq(1,40,by=2),
+          labels = round(coverage_seq[1:40]*100)[c(T,F)],
           sec.axis = ggplot2::sec_axis(~.,
-                                       breaks = seq(0,40,by=2),
+                                       breaks = seq(1,40,by=2),
                                        labels = c(sec_axis_labels[c(T,F)]),
                                        name = "Sample n in pilot community")
         ) +
-        ggplot2::theme(axis.text.x.top = ggplot2::element_text(hjust = c(.95,rep(.5, times = 20))))
+        ggplot2::theme(axis.text.x.top = ggplot2::element_text(hjust = c(.95,rep(.5, times = 19))))
     )
   )
 
@@ -114,7 +114,7 @@ subsample_boots <- function(boots,
   # since we know the number of samples in the original pilot community,
   # we can back-calculate (rescaled) coverage, then predict the achieved
   # minimum detectable effect size from the pilot study that we conducted
-  pilot_minimum_detectable <- .calc_minEff_at_sampleSize(pilot, pilot_coverage_rescale, coverage_seq, power_mod, method)
+  pilot_minimum_detectable <- .calc_minEff_at_sampleSize(pilot, pilot_coverage, coverage_seq, power_mod, method)
   p3 <- .add_minEff_at_sampleSize(p3, pilot_minimum_detectable)
 
   # add true effect size =================================
@@ -129,7 +129,7 @@ subsample_boots <- function(boots,
   # add samples for target effect size ========
   target_ann <- NULL
   if(!is.null(target_eff_size)){
-    target_ann <- .calc_site_to_reach_target(target_eff_size, power_au, pilot_coverage_rescale, coverage_seq, cost_per_sample, method)
+    target_ann <- .calc_site_to_reach_target(target_eff_size, power_au, pilot_coverage, coverage_seq, cost_per_sample, method)
     p3 <- .add_target_to_plot(p3, target_ann)
   }
 

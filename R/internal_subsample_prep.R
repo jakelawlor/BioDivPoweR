@@ -23,13 +23,13 @@
     dplyr::mutate(
       !!(new_cols[1]) := purrr::map(
         .x = get(old_cols[3]),
-        .f = ~BioDivSampler:::find_eff_sites(coverage_vec = .x,
+        .f = ~find_eff_sites(coverage_vec = .x,
                                              target = .coverage_seq*max(.x)
         )
       ),
       !!(new_cols[2]) := purrr::map(
         .x = get(old_cols[4]),
-        .f = ~BioDivSampler:::find_eff_sites(coverage_vec = .x,
+        .f = ~find_eff_sites(coverage_vec = .x,
                                              target = .coverage_seq*max(.x))
       ),
     )
@@ -112,7 +112,7 @@
     tidyr::unnest(dplyr::contains(".richness")) %>%
     dplyr::group_by(eff_size,trial) %>%
     dplyr::mutate(coverage = .coverage_seq) %>%
-    dplyr::mutate(coverage_rank = 0:(dplyr::n()-1)) %>%
+    dplyr::mutate(coverage_rank = 1:(dplyr::n())) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(log2diff = log2(
       get(paste0(.community_types[[2]],".richness")) / get(paste0(.community_types[[1]],".richness"))

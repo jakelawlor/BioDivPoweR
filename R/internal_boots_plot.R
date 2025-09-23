@@ -113,7 +113,7 @@
                                     fill = abs(eff_size_num)),
                        color = "grey20",
                        linewidth = .1, show.legend = F) +
-    ggplot2::scale_fill_gradientn(colors = BioDivSampler:::cool_matlab())
+    ggplot2::scale_fill_gradientn(colors = cool_matlab())
 
   return(p3)
 

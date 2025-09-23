@@ -121,7 +121,7 @@
     .x = avg_occupancies,
     .y = .full_boots,
     .f = ~purrr::map(1:length(avg_occupancies[[1]]),
-                     .f = function(y) BioDivSampler:::find_coverage(
+                     .f = function(y) find_coverage(
                        occupancy = .x[[y]],
                        k = nrow(.y[[y]])
                      ))

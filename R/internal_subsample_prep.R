@@ -169,10 +169,13 @@
 
 
 .get_out_df <- function(.pilot,
+                        .true,
                         .pilot_minimum_detectable,
                         .target_ann = NULL,
                         .cost_per_sample,
-                        .target_eff_size){
+                        .target_eff_size,
+                        .method){
+
 
   # first, arrange the achieved values
   out.achieved <- .pilot_minimum_detectable %>%
@@ -183,38 +186,74 @@
                   sample_size = pilot_ss) %>%
     dplyr::select(-pilot_achieved_rank)
 
+  if(!is.null(.true)){
 
-  pilot_ss <- switch(
-    class(.pilot[[2]]),
-    "numeric" = data.frame("sample_size.total" = nrow(.pilot)),
-    "character" = dplyr::count(.pilot, across(2)) %>%
-    tidyr::pivot_wider(values_from = n,
-                       names_from = 1,
-                       names_prefix = "sample_size.") %>%
-    dplyr::mutate(sample_size.total = sum(dplyr::c_across(starts_with("sample_size.")), na.rm = TRUE)))
+    out.achieved <- switch(
+      .method,
+      "single" =  out.achieved %>%
+        dplyr::bind_cols(.true %>% dplyr::select(raw_richness)) %>%
+        dplyr::rename(sample_size.total = sample_size),
+      "two" = out.achieved %>%
+      dplyr::select(-sample_size) %>%
+      dplyr::bind_cols(.true %>%
+                         dplyr::select(-min_coverage)) %>%
+      dplyr::mutate(raw_sample_size.total =
+                      sum(dplyr::across(dplyr::contains("raw_sample_size."))),
+                    .before = dplyr::contains("rarefied_richness")) %>%
+      dplyr::mutate(rarefied_sample_size.total =
+                      sum(dplyr::across(dplyr::contains("rarefied_sample_size."))),
+                    .before = true_abs_effect)
+    )
 
-  out.achieved <- out.achieved %>%
-    dplyr::select(-sample_size) %>%
-    dplyr::bind_cols(pilot_ss)
+  }
 
+#  pilot_ss <- switch(
+#    class(.pilot[[2]]),
+#    "numeric" = data.frame("sample_size.total" = nrow(.pilot)),
+#    "character" = dplyr::count(.pilot, across(2)) %>%
+#    tidyr::pivot_wider(values_from = n,
+#                       names_from = 1,
+#                       names_prefix = "sample_size.") %>%
+#    dplyr::mutate(sample_size.total = sum(dplyr::c_across(starts_with("sample_size.")), na.rm = TRUE)))
+#
+#  out.achieved <- out.achieved %>%
+#    dplyr::select(-sample_size) %>%
+#    dplyr::bind_cols(pilot_ss)
+#
   out.df <- out.achieved
 
+  # if there is a target effect size, calculate "target" values
   if(!is.null(.target_eff_size)){
     out.target <- .target_ann %>%
       dplyr::mutate(group = "target", .before = power ) %>%
       dplyr::rename(min_detectble_effect = target_eff_size,
                     coverage = coverage_value
       ) %>%
-      dplyr::select(-coverage_rank, -ann)
-    out.df <- out.achieved %>% dplyr::bind_rows(out.target)
+      dplyr::select(-coverage_rank, -ann, -dplyr::contains("cost"))
+
+    # rename to match other columns (with treatment names) if it's a two-treatment
+    if(.method == "two"){
+
+      colnames(out.target)[stringr::str_detect(colnames(out.target),"sample_size")] <-
+        stringr::str_replace(    colnames(out.target)[stringr::str_detect(colnames(out.target),"sample_size")],
+                                 "sample_size","rarefied_sample_size")
+
+    }
+
+  out.df <- out.achieved %>% dplyr::bind_rows(out.target)
   }
 
 
   # add cost if applicable
   if(!is.null(.cost_per_sample)){
-    out.df <- out.df %>%
-      dplyr::mutate(total_cost = sample_size.total*.cost_per_sample)
-  }
+    out.df <- switch(
+      .method,
+      "single" = out.df %>% dplyr::mutate(total_cost = sample_size.total*.cost_per_sample),
+      "two" = out.df %>%
+      dplyr::mutate(total_cost.raw = raw_sample_size.total*.cost_per_sample,
+                    total_cost.rarefied = rarefied_sample_size.total*.cost_per_sample)
+    )
+    }
 
   return(out.df)
 }

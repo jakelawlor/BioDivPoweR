@@ -123,7 +123,11 @@ subsample_boots <- function(boots,
   # sd of boot differences for single-community
   # richness-to-rarified-richness mean for two communities
   if(method == "two"){
-    p3 <- .add_true_effect(pilot, p3)
+    true <- .calc_true_effect(pilot, pilot_coverage)
+    p3 <- .add_true_effect(true, p3)
+  }
+  if(method == "single"){
+    true <- .calc_true_effect_single(pilot, pilot_coverage)
   }
 
   # add samples for target effect size ========
@@ -140,10 +144,12 @@ subsample_boots <- function(boots,
 
   # get relevant values as dataframe
   out.df <- .get_out_df(.pilot = pilot,
-              .pilot_minimum_detectable = pilot_minimum_detectable,
-              .target_ann = target_ann,
-              .cost_per_sample = cost_per_sample,
-              .target_eff_size = target_eff_size)
+                        .true  = true,
+                        .pilot_minimum_detectable = pilot_minimum_detectable,
+                        .target_ann = target_ann,
+                        .cost_per_sample = cost_per_sample,
+                        .target_eff_size = target_eff_size,
+                        .method = method)
 
   # add to plot
   out <- list(p0, p1, p2, p3, out.df)

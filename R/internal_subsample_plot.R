@@ -309,10 +309,12 @@
   )
 
   # if the highest value isn't enough, do it again for 5000
-  if(.method == "single" & max(unlist(pilot_coverage)) < .coverage_seq[40]){
-    pilot_coverage <- find_coverage(pilot_occupancy, 5000)}
-  if(.method == "two" & any(purrr::map(pilot_coverage, max) < .coverage_seq[40])){
-    pilot_coverage <- purrr::map(.x = pilot_occupancy, .f = ~find_coverage(.x, 5000))}
+  if(.method == "single")
+    if(max((pilot_coverage)) < .coverage_seq[40]){
+      pilot_coverage <- find_coverage(pilot_occupancy, 5000)}
+  if(.method == "two")
+    if(any(purrr::map(pilot_coverage, max) < .coverage_seq[40])){
+      pilot_coverage <- purrr::map(.x = pilot_occupancy, .f = ~find_coverage(.x, 5000))}
 
 
   return(pilot_coverage)
@@ -726,25 +728,39 @@
 
 
 
-
-
-.add_true_effect <- function(.pilot, .p3){
+.calc_true_effect <- function(.pilot, .pilot_coverage){
 
   # for two-treatment, first find n_sites for equal coverage
   pilot_split <- .pilot %>% split(f = .[2])
 
-  pilot_cov <- purrr::map(
+  raw_richness <- purrr::map(
     .x = pilot_split,
-    .f = ~find_coverage(colMeans(.x[,-c(1:2)])[colSums(.x[,-c(1:2)]) > 0],
-                        k = nrow(.x))
-  )
+    .f = ~sum(colSums(.x[,-c(1:2)]) > 0)
+  ) %>% dplyr::bind_rows() %>%
+    purrr::set_names(paste0("raw_richness.",names(.)))
+
+  raw_sample_size <- purrr::map(.x = pilot_split,
+                                .f = ~nrow(.x)) %>%
+    dplyr::bind_rows() %>%
+    purrr::set_names(paste0("raw_sample_size.",names(.)))
+
+  #pilot_cov <- purrr::map(
+  #  .x = pilot_split,
+  #  .f = ~find_coverage(colMeans(.x[,-c(1:2)])[colSums(.x[,-c(1:2)]) > 0],
+  #                      k = nrow(.x))
+  #)
+
+  # find the minimum coverage of the two communities at their original samples size
+  min_cov <- min(.pilot_coverage[[1]][raw_sample_size[[1]]],
+                 .pilot_coverage[[2]][raw_sample_size[[2]]])
 
   # find the number of sites in original communities at which coverage is equal
+  # to the smaller of the two max coverages
   pilot_n_equal_cov <- c(
-    dplyr::first(which(pilot_cov[[1]] >= min(max(pilot_cov[[1]]),max(pilot_cov[[2]])))),
-    dplyr::first(which(pilot_cov[[2]] >= min(max(pilot_cov[[1]]),max(pilot_cov[[2]]))))
+    dplyr::first(which(.pilot_coverage[[1]] >= min_cov)),
+    dplyr::first(which(.pilot_coverage[[2]] >= min_cov))
   ) %>%
-    purrr::set_names(names(pilot_cov))
+    purrr::set_names(names(.pilot_coverage))
 
   # identify the community that's equal-coverage n_samples is the same as its total n_samples.
   # that one is the relatively udersampled community, for which richness will be measured once
@@ -770,12 +786,59 @@
     .f = ~sum(
       colSums(pilot_split[[oversampled]][sample(nrow(pilot_split[[oversampled]]),
                                                 pilot_n_equal_cov[[oversampled]],
-                                          replace = F),][,-c(1:2)]) > 0)
-  ) %>% unlist() %>% mean() %>%  purrr::set_names(oversampled)
+                                                replace = F),][,-c(1:2)]) > 0)
+  ) %>% unlist()
 
-  richness <- c( rich_rare_over, rich_under)[names(pilot_cov)]
+  rich_rare_over_mean <- rich_rare_over %>% mean() %>%  purrr::set_names(oversampled)
+  rich_rare_over_sd <- rich_rare_over %>% sd() %>%  purrr::set_names(oversampled)
+
+
+  richness <- c( rich_rare_over_mean, rich_under)[names(.pilot_coverage)]
 
   true_eff <- log2(richness[1]/richness[2])
+
+  richness %>% purrr::set_names(paste0(names(.),".rarefied_rich")) %>% c()
+
+  richness.all <-
+    raw_richness %>%
+    dplyr::bind_cols(raw_sample_size) %>%
+    dplyr::bind_cols(min_cov %>% purrr::set_names("min_coverage") %>% dplyr::bind_rows()) %>%
+    dplyr::bind_cols(richness %>% purrr::set_names(paste0("rarefied_richness.",names(.))) %>% dplyr::bind_rows()) %>%
+    dplyr::bind_cols(pilot_n_equal_cov %>% purrr::set_names(paste0("rarefied_sample_size.",names(.))) %>% dplyr::bind_rows()) %>%
+    dplyr::bind_cols(true_eff %>% purrr::set_names("true_abs_effect") %>% dplyr::bind_rows() %>% abs())
+
+
+  return(richness.all)
+
+}
+
+
+# just get richness values and sample size for single-treatment community
+.calc_true_effect_single <- function(.pilot, .pilot_coverage){
+
+
+  sample_size <- nrow(.pilot)
+
+  coverage <- .pilot_coverage[sample_size]
+
+  richness <- sum(colSums(.pilot[,-1]) > 0)
+
+  richness.all <- data.frame(
+    raw_sample_size = sample_size,
+    coverage = coverage,
+    raw_richness = richness
+  )
+
+  return(richness.all)
+
+}
+
+
+# add true effect size as geom_rug on plot
+.add_true_effect <- function(.true_effect, .p3){
+
+
+  true_eff <- .true_effect$true_abs_effect
 
 
   p3 <- .p3 +

@@ -181,7 +181,7 @@
   out.achieved <- .pilot_minimum_detectable %>%
     dplyr::mutate(group = "achieved") %>%
     dplyr::relocate(group) %>%
-    dplyr::rename(min_detectble_effect = achieved_min_eff_size,
+    dplyr::rename(min_detectable_effect = achieved_min_eff_size,
                   coverage = pilot_achieved_cover,
                   sample_size = pilot_ss) %>%
     dplyr::select(-pilot_achieved_rank)
@@ -226,7 +226,7 @@
   if(!is.null(.target_eff_size)){
     out.target <- .target_ann %>%
       dplyr::mutate(group = "target", .before = power ) %>%
-      dplyr::rename(min_detectble_effect = target_eff_size,
+      dplyr::rename(min_detectable_effect = target_eff_size,
                     coverage = coverage_value
       ) %>%
       dplyr::select(-coverage_rank, -ann, -dplyr::contains("cost"))

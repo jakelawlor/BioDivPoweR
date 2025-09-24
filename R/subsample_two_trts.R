@@ -8,7 +8,6 @@
 #' @param seed random seed. Defaults to 1 so repeat runs will be identical, but since simulations rely on random draws, changing the seed will result in different answers.
 #'
 #' @returns list of plots.
-#' @export
 #'
 #' @examples if(FALSE) subsample_two_trts(boots2)
 subsample_two_trts <- function(data,

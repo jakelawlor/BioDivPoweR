@@ -11,6 +11,7 @@
 #' @returns a tibble of `min_exp_n` simulated communities, rarified to equal coverage, within all effect size bins that qualify. Additionally, prints a histogram of simulated community richness values, highlighting the bins that are kept for the next step.
 #'
 #' @examples bootstrap_single_trt(data("pilot_single_trt"))
+#' @noRd
 bootstrap_single_trt_old <- function(pilot,
                                  n_boots = 5000,
                                  n_eff_size_bins = 40,

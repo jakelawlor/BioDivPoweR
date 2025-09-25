@@ -10,6 +10,7 @@
 #' @returns list of plots.
 #'
 #' @examples if(FALSE) subsample_two_trts(boots2)
+#' @noRd
 subsample_two_trts <- function(data,
                               pilot,
                               power = c(80),

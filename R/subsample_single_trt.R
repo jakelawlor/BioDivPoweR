@@ -10,6 +10,7 @@
 #' @returns list of plots.
 #'
 #' @examples if(FALSE){subsample_single_trt(boots = boots, pilot = pilot_single_trt)}
+#' @noRd
 subsample_single_trt <- function(boots,
                                pilot,
                                power = c(80),

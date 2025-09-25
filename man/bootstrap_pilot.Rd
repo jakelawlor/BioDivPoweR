@@ -2,7 +2,7 @@
 % Please edit documentation in R/bootstrap_pilot.R
 \name{bootstrap_pilot}
 \alias{bootstrap_pilot}
-\title{Bootstrap Biodiversity Samples from Two-Treatment Pilot}
+\title{Bootstrap Biodiversity Samples from Species-by-Site Matrix}
 \usage{
 bootstrap_pilot(
   pilot,

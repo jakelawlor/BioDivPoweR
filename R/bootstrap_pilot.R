@@ -1,4 +1,4 @@
-#' Bootstrap Biodiversity Samples from Two-Treatment Pilot
+#' Bootstrap Biodiversity Samples from Species-by-Site Matrix
 #'
 #' `bootstrap_two_trt` creates `n_boots` simulated communities from a pilot biodiversity survey, pulled from randomly drawn sites from the `pilot` survey, with replacement. Bootstrapped pairs are compared for differences in richness, and differences in richness (log2 ratio) are sorted into a histogram with `n_eff_size_bins` bins. When possible, `min_exp_n` experiments (pairs of simulated communities, rarefied to equal sample coverage) are retained and kept as the input for the following function.
 #'

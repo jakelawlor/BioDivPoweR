@@ -1,4 +1,4 @@
-#' Subsample bootstrapped communities
+#' Subsample bootstrapped communities to assess power for detecting change across community coverage
 #'
 #' Downsample bootstrapped communities to lower sample sizes representing a gradient of coverage values, and assess the proportion of correct-direction detections within each coverage interval.
 #'

@@ -8,6 +8,7 @@
 #' @export
 #'
 #' @examples if(FALSE){find_target_detection_rate(pilot_single_trt)}
+#' @noRd
 find_target_detection_rate <- function(matrix){
 
   # first, identify numeric columns in the pilot dataset

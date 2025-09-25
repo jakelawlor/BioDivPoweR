@@ -2,7 +2,7 @@
 % Please edit documentation in R/subsample_boots.R
 \name{subsample_boots}
 \alias{subsample_boots}
-\title{Subsample bootstrapped communities}
+\title{Subsample bootstrapped communities to assess power for detecting change across community coverage}
 \usage{
 subsample_boots(
   boots,

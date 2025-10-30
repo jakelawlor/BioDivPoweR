@@ -101,9 +101,11 @@
 
   # color the histogram bins in which count surpasses min_exp_n
   p3 <- p3 +
+    # add colored rectangles
     ggplot2::geom_rect(data = p3 %>% ggplot2::layer_data() %>%
                          dplyr::filter(count >= min_exp_n) %>%
-                         dplyr::mutate(eff_size_num = (round(x,3)))
+                         dplyr::mutate(eff_size_num = (round(x,3))) %>%
+                         dplyr::filter(round(x,3) != 0)
                        ,
                        inherit.aes = F,
                        ggplot2::aes(xmin = xmin,
@@ -113,6 +115,20 @@
                                     fill = abs(eff_size_num)),
                        color = "grey20",
                        linewidth = .1, show.legend = F) +
+
+    # add grey rectangle
+    ggplot2::geom_rect(data = p3 %>% ggplot2::layer_data() %>%
+                         dplyr::filter(round(x,3) == 0)
+                       ,
+                       inherit.aes = F,
+                       ggplot2::aes(xmin = xmin,
+                                    xmax = xmax,
+                                    ymin = 0,
+                                    ymax = min_exp_n),
+                       fill = "grey50",
+                       color = "grey20",
+                       linewidth = .1, show.legend = F) +
+
     ggplot2::scale_fill_gradientn(colors = cool_matlab())
 
   return(p3)

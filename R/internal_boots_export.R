@@ -13,7 +13,8 @@
     dplyr::select(xmin,xmax,count,x) %>%
     dplyr::mutate(x = round(x,3)) %>%
     dplyr::mutate(iter = 1:nrow(.)) %>%
-    dplyr::filter(count >= .min_exp_n) %>%
+    dplyr::filter(count >= .min_exp_n,
+                  x != 0) %>%
     split(f = .$iter)
 
   # make a list of min_exp_n pair IDS to save inside each eff_size_bin.

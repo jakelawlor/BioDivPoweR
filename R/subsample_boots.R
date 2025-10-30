@@ -17,7 +17,8 @@ subsample_boots <- function(boots,
                            power = c(80),
                            target_eff_size = NULL,
                            cost_per_sample = NULL,
-                           seed = NULL){
+                           seed = NULL,
+                           analysis_type = "sign"){
 
   # various checks
   if(method == "single" & sum(sapply(pilot, is.character)) > 1)
@@ -51,7 +52,9 @@ subsample_boots <- function(boots,
   # plot --------------------------------------------------------------------
 
   # funnel plot of effect size across coverage values
-  p0 <- .plot_subsample_funnel(df, power, coverage_seq)
+  p0 <- .plot_subsample_funnel(df, coverage_seq)
+
+
 
   # line plot of mean detected richness difference across coverages
   p1 <- .plot_subsample_mean(df, coverage_seq)
@@ -59,7 +62,7 @@ subsample_boots <- function(boots,
   # summarize proportion correct --------------------------------------------
   cat("Calculating proportion correct detection across subsamples...\n")
   # find proportion correct detections (same sign, or == 0 in zero bin)
-  prop_correct <- .census_proportion_correct(df)
+  prop_correct <- .census_proportion_correct(df, analysis_type)
 
   p2 <- .plot_prop_correct(prop_correct, power, coverage_seq)
 

@@ -7,7 +7,7 @@
 #' @param df dataframe of richness differences between boots at all values in `coverage_seq`. Output of `.summarize_subsamples_diff()`
 #' @return ggplot of effect size as coverage increases for `min_exp_n` experiments in all qualifying effect size bins
 #' @noRd
-.plot_subsample_funnel <- function(.df, .power, .coverage_seq){
+.plot_subsample_funnel <- function(.df, .coverage_seq){
 
   # plot funnels within effect size bins
   p0 <-   .df %>%
@@ -41,6 +41,46 @@
   return(p0)
 
 }
+
+
+
+.plot_subsample_raw <- function(.df, .power, .coverage_seq){
+
+  vec <- unique(as.numeric(.df$eff_size))
+  half <- min(vec[vec>0])/2
+  # plot funnels within effect size bins
+  p0.2 <-   .df %>%
+    dplyr::group_by(eff_size, coverage_rank,eff_size_num) %>%
+    dplyr::mutate(eff_size = forcats::fct_reorder(eff_size, eff_size_num)) %>%
+    ggplot2::ggplot(ggplot2::aes(x = coverage_rank,
+                                 y = log2diff2,
+                                 group = trial)) +
+    ggplot2::geom_line(alpha = .7, linewidth = .1) +
+    ggplot2::geom_hline(yintercept = 0, linewidth = .4) +
+    ggplot2::geom_rect(
+      data = . %>% dplyr::group_by(eff_size) %>% dplyr::slice(1),
+      ggplot2::aes(ymax =as.numeric(as.character(eff_size)) + half,
+                           ymin = as.numeric(as.character(eff_size)) - half,
+                           xmax = Inf,
+                           xmin = -Inf),
+                       stat = "unique",
+                       alpha = .5,
+      fill = "red") +
+    ggplot2::facet_wrap(~eff_size) +
+    ggplot2::coord_cartesian(ylim = c(-.2,.2)) +
+    ggplot2::scale_x_continuous(
+      breaks = seq(1,41,by=4),
+      labels = round(c(.coverage_seq*100),0)[c(T,F,F,F)]
+    ) +
+    ggplot2::labs(x = "Coverage (%)",
+                  y = "Detected Richness Change",
+                  title = "Convergence across coverage within effect size bins") +
+    ggplot2::theme_bw()
+
+  return(p0.2)
+
+}
+
 
 #' Plot subsample means across coverage intervals
 #'
@@ -85,7 +125,8 @@
                    legend.background = ggplot2::element_rect(color = "black",
                                                              linewidth = .1)) +
     ggplot2::guides(color = ggplot2::guide_colorbar(theme = ggplot2::theme(legend.title.position = "top"))) +
-    ggplot2::theme(panel.grid = ggplot2::element_blank())
+    ggplot2::theme(panel.grid = ggplot2::element_blank()) +
+    ggplot2::geom_hline(yintercept = 0, linetype = "dashed")
 
   return(p1)
 

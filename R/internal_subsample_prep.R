@@ -141,28 +141,122 @@
 #' @param .df long-format tibble of detected changes in every qualifying experiment across coverage values
 #' @return summarized df displaying number and proportion of correct-direction detections of all experiments within effect size bins and coverage intervals
 #' @noRd
-.census_proportion_correct <- function(.df){
+.census_proportion_correct <- function(.df, .analysis_type){
 
-  prop_correct <-  .df %>%
-    # first calculate correct sign, except in zero effect size bin
-    dplyr::mutate(correct_sign =
-                    dplyr::case_when(
-                      # when eff_size is not zero, calculate whether detected change is same
-                      # sign as true change
-                      eff_size_num != 0 ~ ifelse(sign(log2diff2) == sign(eff_size_num),
-                                                 T,F),
-                      # when eff size is zero, calculate whether log2 def is also zero
-                      eff_size_num == 0 ~ ifelse(abs(log2diff2) == 0,
-                                                 T,F))) %>%
+
+  # find 1/2 bin width (center of smallest bin / 2)
+  if(.analysis_type != "sign"){
+    vec <- unique(.df$eff_size_num)
+    half <- min(vec[vec > 0])/2 # find half of smallest positive bin
+    half2 <- abs(max(vec[vec<0])/2) # find half of negative smallest bin
+    stopifnot(half == half2) # make sure they're the same
+  }
+
+# .df %>% dplyr::group_by(eff_size_num) %>%
+#   dplyr::select(eff_size_num, coverage, log2diff2, coverage_rank) %>%
+#   dplyr::filter(coverage_rank > 36,
+#                 eff_size_num > 0) %>%
+#   dplyr::mutate(
+#     eff_size_num_high = eff_size_num + half,
+#     eff_size_num_low = eff_size_num - half
+#   ) %>%
+#   dplyr::slice(1:4) %>%
+#   dplyr::mutate(correct = dplyr::case_when(
+#     eff_size_num < 0 ~ ifelse(log2diff2 < 0 & log2diff2 > (eff_size_num - half),T,F),
+#     eff_size_num > 0 ~ ifelse(log2diff2 > 0 & log2diff2 > (eff_size_num + half),T,F),
+#     eff_size_num == 0 ~ ifelse(abs(log2diff2) == 0,T,F))
+#   )
+
+ #df %>% filter(eff_size_num ==vec[1]) %>%
+ #  filter(coverage_rank %in% c(1,10,20,30,40)) %>%
+ #  dplyr::mutate(correct = dplyr::case_when(
+ #    eff_size_num < 0 ~ ifelse(log2diff2 < 0 & log2diff2 >= (eff_size_num - half),T,F),
+ #    eff_size_num > 0 ~ ifelse(log2diff2 > 0 & log2diff2 <= (eff_size_num + half),T,F),
+ #    eff_size_num == 0 ~ ifelse(log2diff2 <= half & log2diff2 >= half*-1,T,F))
+ #  ) %>%
+ #  ggplot() +
+ #  geom_vline(aes(xintercept = eff_size_num - half ), linewidth = .2 )+
+ #  geom_vline(aes(xintercept = eff_size_num + half ), linewidth = .2 )+
+ #  geom_vline(xintercept = 0, linetype = "dotted")+
+ #  geom_histogram(aes(x = log2diff2,
+ #                     fill = correct),
+ #                 boundary = 0,
+ #                 binwidth = half) +
+ #  geom_rect(data = . %>% group_by(coverage_rank) %>% slice(1),
+ #            aes(xmin = eff_size_num - half,
+ #                xmax = eff_size_num + half,
+ #                ymin = -Inf,
+ #                ymax = Inf),
+ #            fill = "grey80",
+ #            alpha = .5)+
+ #
+ #  geom_vline(aes(xintercept = eff_size_num - half ), linewidth = .1 )+
+ #  geom_vline(aes(xintercept = eff_size_num + half ), linewidth = .1 )+
+ #
+ #  facet_wrap(~coverage_rank) +
+ #  coord_cartesian(xlim = c(-.5,.5))
+
+  # find proportion correct based on analysis type
+  prop_correct1 <- switch(
+    .analysis_type,
+
+    # first, if analysis is type "sign": --------
+    "sign" = .df %>%
+      # first calculate correct sign, except in zero effect size bin
+      dplyr::mutate(correct = ifelse(sign(log2diff2) == sign(eff_size_num),
+                                                          T,F)
+                      #dplyr::case_when(
+                      #  # when eff_size is not zero, calculate whether detected change is same
+                      #  # sign as true change
+                      #  eff_size_num != 0 ~ ifelse(sign(log2diff2) == sign(eff_size_num),
+                      #                             T,F),
+                      #  # when eff size is zero, calculate whether log2 def is also zero
+                      #  eff_size_num == 0 ~ ifelse(abs(log2diff2) == 0,
+                      #                             T,F))
+                      ),
+
+    # option 2: at least
+    # detections will be considered correct when they:
+    # - are the same sign as true difference
+    # - are less than or equal to the magnitude of the true difference,
+    # so that when you detect a difference,
+    # you know the difference is at least that big.
+    "at_least" = .df %>%
+      dplyr::mutate(correct = dplyr::case_when(
+        eff_size_num < 0 ~ ifelse(log2diff2 < 0 & log2diff2 >= (eff_size_num - half),T,F),
+        eff_size_num > 0 ~ ifelse(log2diff2 > 0 & log2diff2 <= (eff_size_num + half),T,F),
+        eff_size_num == 0 ~ ifelse(log2diff2 <= half & log2diff2 >= half*-1,T,F))
+      ),
+
+    # OPTION 3:
+    # in this option, detections will be considered correct if they:
+    # - are inside the bounds of their effect size bin
+    "inside" = .df %>%
+      dplyr::mutate(correct = ifelse(log2diff > eff_size_num - half &
+                                       log2diff < eff_size_num + half, T, F))
+  )
+
+ # prop_correct1 %>% mutate(abs_eff_size = abs(eff_size_num)) %>%
+ #   filter(abs_eff_size == .166) %>%
+ #   filter(coverage_rank > 30) %>%
+ #   dplyr::select(eff_size_num, coverage, log2diff2, coverage_rank, correct) %>%
+ #   dplyr::mutate(
+ #     eff_size_num_high = eff_size_num + half,
+ #     eff_size_num_low = eff_size_num - half
+ #   ) %>%
+ #   print(n = Inf)
+
+  prop_correct2 <-  prop_correct1 %>%
+
     dplyr::mutate(abs_eff_size = abs(eff_size_num)) %>%
     dplyr::group_by(abs_eff_size, coverage_rank, coverage) %>%
-    dplyr::summarize(n_correct  = sum(correct_sign),
+    dplyr::summarize(n_correct  = sum(correct),
                      n_total = dplyr::n(),
                      .groups = "drop") %>%
     dplyr::mutate(prop_correct = (n_correct/n_total)*100) %>%
     dplyr::ungroup()
 
-  return(prop_correct)
+  return(prop_correct2)
 
 }
 

@@ -49,11 +49,19 @@ bootstrap_pilot <- function(pilot,
   # find coverage in bootstrapped communities
   eff_coverage <- .find_rarefied_coverage(boot_arrays)
 
-  rarefied_boots <- .rarefy_boots(boot_arrays, eff_coverage, "two")
+  rarefied_boots <- .rarefy_boots(boot_arrays, eff_coverage)
   rm(boot_arrays) #remove the full-length boots
 
   # summarize richness differences between rarefied bootstrapped community pairs
   summary <- .summarize_boot_diff(rarefied_boots)
+
+  # remove true zeros:
+  zeros <- which(summary$log2_rich_diff == 0)
+  rarefied_boots[[1]] <- rarefied_boots[[1]][-zeros]
+  rarefied_boots[[2]] <- rarefied_boots[[2]][-zeros]
+  eff_coverage[[1]] <- eff_coverage[[1]][-zeros]
+  eff_coverage[[2]] <- eff_coverage[[2]][-zeros]
+  summary <- summary[summary$log2_rich_diff != 0,]
 
   # make bootstrap plots ----------------------------------------------------
   cat("Sorting differences to",n_eff_size_bins,"effect size bins... \n")

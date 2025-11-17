@@ -23,7 +23,8 @@
     purrr::map(
     .x = p3_breaks,
     .f = ~which(.summary$log2_rich_diff > .x$xmin &
-                  .summary$log2_rich_diff <= .x$xmax)[1:.min_exp_n] # keep 1:min_exp_n
+                  .summary$log2_rich_diff <= .x$xmax &
+                  .summary$log2_rich_diff != 0)[1:.min_exp_n] # keep 1:min_exp_n
   ) %>%
     # set names of bins to the center x value of each bin
     purrr::set_names(purrr::map(p3_breaks,~unique(.x$x)))

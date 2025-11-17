@@ -140,7 +140,7 @@
 #' @param method specification for "single" or "two" treatment workflow
 #' @return list of length 2, each element is an array with dimensions (max_sites, n_species - custom per boot, n_boots)
 #' @noRd
-.rarefy_boots <- function(.full_boots, .eff_coverage, method) {
+.rarefy_boots <- function(.full_boots, .eff_coverage) {
 
   # c. find number of sites in each community necessary to equalize achieved coverage
  # names <- switch(

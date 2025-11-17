@@ -57,16 +57,18 @@
     dplyr::mutate(raw_diff = dplyr::pull(.,3) - dplyr::pull(., 2)) %>%
     ggplot2::ggplot() +
     ggplot2::theme_bw() +
-    ggplot2::geom_histogram(ggplot2::aes(x = raw_diff),
+    ggplot2::geom_histogram(ggplot2::aes(x = raw_diff,
+                                         fill = ifelse(log2_rich_diff == 0,"grey20","grey80")),
                             alpha = .5,
                             color = "grey20",
-                            fill = "grey80",
+                            #fill = "grey80",
                             center = 0,
                             linewidth = .1,
                             binwidth = 1,
                             position = "identity") +
     ggplot2::labs(x = "Raw richness difference",
-                  y = "Count")
+                  y = "Count") +
+    ggplot2::scale_fill_identity()
 
 
 }
@@ -81,17 +83,21 @@
 #' @noRd
 .plot_boots_log2_diff <- function(.boot_summary, min_exp_n, n_eff_size_bins){
 
+  # first calculate bindiwth
+  xrange <- range(.boot_summary$log2_rich_diff, na.rm = TRUE)
+  binwidth <- (xrange[2] - xrange[1]) / n_eff_size_bins
 
-  p3 <- ggplot2::ggplot(data = .boot_summary,
+
+  p3 <- ggplot2::ggplot(data = .boot_summary[.boot_summary$log2_rich_diff != 0,],
                         ggplot2::aes(x = log2_rich_diff)) +
     ggplot2::theme_bw() +
     ggplot2::geom_histogram(
+      boundary = 0,
       color = "grey20",
       fill = "grey90",
       linewidth = .1,
-      bins = n_eff_size_bins,
-      show.legend = F,
-      center = 0
+      binwidth = binwidth,
+      show.legend = F
     ) +
     ggplot2::geom_hline(yintercept = min_exp_n,
                         linetype = "dashed",
@@ -104,8 +110,8 @@
     # add colored rectangles
     ggplot2::geom_rect(data = p3 %>% ggplot2::layer_data() %>%
                          dplyr::filter(count >= min_exp_n) %>%
-                         dplyr::mutate(eff_size_num = (round(x,3))) %>%
-                         dplyr::filter(round(x,3) != 0)
+                         dplyr::mutate(eff_size_num = (round(x,3)))# %>%
+                        # dplyr::filter(round(x,3) != 0)
                        ,
                        inherit.aes = F,
                        ggplot2::aes(xmin = xmin,
@@ -116,18 +122,18 @@
                        color = "grey20",
                        linewidth = .1, show.legend = F) +
 
-    # add grey rectangle
-    ggplot2::geom_rect(data = p3 %>% ggplot2::layer_data() %>%
-                         dplyr::filter(round(x,3) == 0)
-                       ,
-                       inherit.aes = F,
-                       ggplot2::aes(xmin = xmin,
-                                    xmax = xmax,
-                                    ymin = 0,
-                                    ymax = min_exp_n),
-                       fill = "grey50",
-                       color = "grey20",
-                       linewidth = .1, show.legend = F) +
+   ## add grey rectangle
+   #ggplot2::geom_rect(data = p3 %>% ggplot2::layer_data() %>%
+   #                     dplyr::filter(round(x,3) == 0)
+   #                   ,
+   #                   inherit.aes = F,
+   #                   ggplot2::aes(xmin = xmin,
+   #                                xmax = xmax,
+   #                                ymin = 0,
+   #                                ymax = min_exp_n),
+   #                   fill = "grey50",
+   #                   color = "grey20",
+   #                   linewidth = .1, show.legend = F) +
 
     ggplot2::scale_fill_gradientn(colors = cool_matlab())
 

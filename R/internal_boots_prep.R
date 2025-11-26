@@ -15,7 +15,7 @@
     method,
     "single" = list("community 1" = nrow(.pilot),
                     "community 2" = nrow(.pilot)),
-    "two" =  purrr::map(.x = unique(.pilot[[category_col]]) %>% purrr::set_names(.),
+    "two" =  purrr::map(.x = sort(unique(.pilot[[category_col]])) %>% purrr::set_names(.),
                         .f = ~sum(.pilot[[category_col]] == .x))
   )
 
@@ -182,7 +182,7 @@
     .x = boots_rare,
     .f = ~purrr::map(
       .x = .x,
-      .f = ~.x[,colSums(.x) > 0]
+      .f = ~.x[,colSums(.x) > 0, drop = FALSE]
     )
   )
 

@@ -17,7 +17,7 @@
       # make binary column indicating whether the proportion correct is above power threshold
       dplyr::mutate(threshold = prop_correct >= .x) %>%
       # group by coverage value
-      dplyr::group_by(coverage, coverage_rank) %>%
+      dplyr::group_by(coverage, coverage_rank, sec_axis_labels) %>%
       # filter to only values more correct than the threshold
       dplyr::filter(threshold == T) %>%
       # arrange by abs_eff_size to find the smallest effect size
@@ -30,7 +30,17 @@
       dplyr::filter(coverage != 1)
   )
 
-  return(min_detectable)
+  suppressMessages(
+    min_detectable2 <- purrr::map(
+      .x = min_detectable,
+      .f = ~.prop_correct %>% dplyr::distinct(coverage_rank, coverage, across(contains("pilot_n_sites")), sec_axis_labels) %>%
+        dplyr::left_join(.x)
+    )
+  )
+
+
+
+  return(min_detectable2)
 
 }
 
@@ -49,7 +59,7 @@
   # actually represents coverage on a non-linear scale (coverage_seq)
   power_mod <- purrr::map(
     .x = .min_detectable,
-    .f = ~lm(data = .x,
+    .f = ~lm(data = .x %>% dplyr::filter(include == T),
              formula = abs_eff_size ~ coverage_rank)
   )
 

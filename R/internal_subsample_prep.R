@@ -246,15 +246,18 @@
  #   ) %>%
  #   print(n = Inf)
 
-  prop_correct2 <-  prop_correct1 %>%
+  prop_correct2 <- prop_correct1 %>%
 
     dplyr::mutate(abs_eff_size = abs(eff_size_num)) %>%
-    dplyr::group_by(abs_eff_size, coverage_rank, coverage) %>%
+    dplyr::group_by(abs_eff_size, coverage_rank, coverage,sec_axis_labels) %>%
     dplyr::summarize(n_correct  = sum(correct),
                      n_total = dplyr::n(),
-                     .groups = "drop") %>%
+                     .groups = "drop",
+                     across(starts_with("pilot_n_sites"), unique, .names = "{.col}"),
+                     include = unique(include)) %>%
     dplyr::mutate(prop_correct = (n_correct/n_total)*100) %>%
     dplyr::ungroup()
+
 
   return(prop_correct2)
 

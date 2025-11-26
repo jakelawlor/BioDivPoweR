@@ -10,7 +10,7 @@
 .plot_subsample_funnel <- function(.df, .coverage_seq){
 
   # plot funnels within effect size bins
-  p0 <-   .df %>%
+  p0 <- .df %>%
     dplyr::group_by(eff_size, coverage_rank,eff_size_num) %>%
     dplyr::summarize(quant10 = quantile(log2diff2, .1),
                      quant50 = quantile(log2diff2, .5),
@@ -150,8 +150,8 @@
     ggplot2::scale_color_gradientn(colors = cool_matlab(),
     ) +
     ggplot2::scale_x_continuous(
-      breaks = seq(1,41,by=2),
-      labels = round(.coverage_seq*100)[c(T,F)]
+      breaks = unique(.prop_correct$coverage_rank)[c(T,F)],
+      labels = round(unique(.coverage_seq*100))[c(T,F)]
     ) +
     ggplot2::scale_y_continuous(labels = scales::percent_format(scale = 1)) +
     ggplot2::theme_bw() +
@@ -187,17 +187,21 @@
 
   .min_detectable <- .min_detectable %>%
     dplyr::bind_rows(.id = "power")
+  #labels <- .min_detectable$pilot_n_sites[.min_detectable$power == min(.min_detectable$power)]
 
   # plot minimum detectable effect size across coverage
   p3 <- .min_detectable %>%
     ggplot2::ggplot(ggplot2::aes(x = coverage_rank,
                                  y = abs_eff_size,
                                  group = power)) +
-    ggplot2::geom_point(size = 2, alpha = .8,
+    ggplot2::geom_point(data = . %>% dplyr::filter(include %in% c(T,F)),
+                        size = 2, alpha = .8,
                         ggplot2::aes(fill = abs_eff_size,
-                                     color = power),
-                        shape = 21,
+                                     color = power,
+                                     shape = include),
+                        #shape = 21,
                         stroke = 1) +
+    ggplot2::scale_shape_manual(values = c(`FALSE` = 4, `TRUE` = 21)) +
     #  ggplot2::geom_ribbon(data = power_au,
     #              inherit.aes=F,
     #              ggplot2::aes(x = coverage_rank,
@@ -227,8 +231,13 @@
     ggplot2::scale_color_grey(end = .55,
                               start = 0) +
     ggplot2::scale_x_continuous(
-      breaks = seq(1,40,by=2),
-      labels = round(.coverage_seq[1:40]*100)[c(T,F)]
+      breaks = (.min_detectable$coverage_rank)[-41][c(T,F)],
+      labels = round(unique(.coverage_seq)[1:40]*100)[c(T,F)],
+      sec.axis = ggplot2::sec_axis(~.,
+                                   breaks = .min_detectable$coverage_rank[1:40][c(T,F)],
+                                   labels = .min_detectable$sec_axis_labels[1:40][c(T,F)],
+                                   name = "Sample n in pilot community")
+
     ) +
     ggplot2::theme_bw() +
     ggplot2::labs(y = "Minimum Detectable Fold Change in Richness",
@@ -237,7 +246,9 @@
                   color = "Power") +
     ggplot2::theme(panel.grid = ggplot2::element_blank()) +
     ggplot2::geom_hline(yintercept = 0,
-                        linewidth = .2)
+                        linewidth = .2) +
+    #ggplot2::theme(axis.text.x.top = ggplot2::element_text(hjust = c(.95,rep(.5, times = 19)))) +
+    ggplot2::guides(shape = ggplot2::guide_none())
 
   return(p3)
 
@@ -443,8 +454,42 @@
 
   }
 
+  sec_axis_df <- data.frame(coverage_rank = c(1:40),
+                            coverage = .coverage_seq[1:40])
 
-  return(sec_axis_labels)
+  sec_axis_df <- switch(
+    .method,
+
+    # if single treatment:
+    "single" = sec_axis_df %>%
+      dplyr::mutate(
+        pilot_n_sites = pilot_n_sites,
+        sec_axis_labels = sec_axis_labels
+      ) %>%
+      dplyr::mutate(
+        include = ifelse(pilot_n_sites < 6,F,T)
+      ),
+
+    # if two treatment:
+    "two" = sec_axis_df %>%
+      dplyr::mutate(
+        !!paste0("pilot_n_sites.",.community_types[[1]]) := pilot_n_sites[[paste0(.community_types[[1]])]],
+        !!paste0("pilot_n_sites.",.community_types[[2]]) := pilot_n_sites[[paste0(.community_types[[2]])]],
+        sec_axis_labels = sec_axis_labels
+      ) %>%
+      dplyr::mutate(
+        include = ifelse(
+
+            get(paste0("pilot_n_sites.",.community_types[[1]])) < 6 |
+            get(paste0("pilot_n_sites.",.community_types[[2]])) < 6,
+          F,T)
+      )
+
+  ) # end switch
+
+
+
+  return(sec_axis_df)
 
 }
 
@@ -761,7 +806,7 @@
                        size = 3.5,
                        lineheight = .85,
                        fontface = "bold",
-                       alpha = .8,
+                       alpha = 1,
                        show.legend = F)
 
 }
@@ -813,12 +858,36 @@
     pilot_n_equal_cov,
     ~.x == .y
   )
-  undersampled <- names(equal[equal == T]) %>% purrr::set_names(.)
-  oversampled <- names(equal[equal != T]) %>% purrr::set_names(.)
+
+  # sometimes, neither community is undersampled,
+  # if they both reach the same target coverage in the same number of sites.
+  bothequal <- all(purrr::map(.x = equal,.f = ~isTRUE(.x)) %>% unlist())
+
+
+  if(bothequal == F){
+    undersampled <- names(equal[equal == T]) %>% purrr::set_names(.)
+    oversampled <- names(equal[equal != T]) %>% purrr::set_names(.)
+  } else if (bothequal){
+    undersampled <- names(equal[1]) %>% purrr::set_names(.)
+    oversampled <- names(equal[2]) %>% purrr::set_names(.)
+  }
 
   # undersampled_rich
   # (unedited richness in the non-rarefied community)
-  rich_under <- sum(colSums(pilot_split[[undersampled]][,-c(1:2)],)>0) %>% purrr::set_names(undersampled)
+  # Note that this only happens if the communities are not both equally-sampled.
+  # if they are equally sampled, we'll take rarefied richness of both of them
+  rich_under <- switch(
+    bothequal,
+    `FALSE` = sum(colSums(pilot_split[[undersampled]][,-c(1:2)],)>0) %>% purrr::set_names(undersampled),
+    `TRUE` = purrr::map(
+      .x = c(1:50),
+      .f = ~sum(
+        colSums(pilot_split[[undersampled]][sample(nrow(pilot_split[[undersampled]]),
+                                                  pilot_n_equal_cov[[undersampled]],
+                                                  replace = F),][,-c(1:2)]) > 0)
+    ) %>% unlist()
+  )
+
 
   # oversampled_rich
   # rarefied richness in 50 iterations of the rarefied oversampled community
@@ -832,7 +901,6 @@
 
   rich_rare_over_mean <- rich_rare_over %>% mean() %>%  purrr::set_names(oversampled)
   rich_rare_over_sd <- rich_rare_over %>% sd() %>%  purrr::set_names(oversampled)
-
 
   richness <- c( rich_rare_over_mean, rich_under)[names(.pilot_coverage)]
 

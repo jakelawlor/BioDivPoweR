@@ -49,12 +49,66 @@ subsample_boots <- function(boots,
   df <- .summarize_subsamples_diff(subsamples, coverage_seq, community_types)
   rm(subsamples)
 
+  ## calculate n sites in pilot for each coverage step ==============================
+  pilot_coverage <- .find_pilot_coverage(pilot, method, coverage_seq)
+  sec_axis_labels <- .calc_second_axis(pilot_coverage, coverage_seq, cost_per_sample, method, community_types)
+
+  df <- df %>% dplyr::left_join(sec_axis_labels, dplyr::join_by(coverage, coverage_rank))
+  rm(sec_axis_labels)
+
+#
+#  # first, find coverage in pilot community at 1:n samples
+#  pilot_coverage <- .find_pilot_coverage(pilot, method, coverage_seq)
+#
+#
+#  calc_sec_axis <- function(.method = method, .coverage_seq = coverage_seq,
+#                            .cost_per_sample = cost_per_sample, .pilot_coverage = pilot_coverage){
+#
+#
+#
+#    labs <- switch(.method,
+#
+#                   # if single-treatment analysis:
+#                   "single" =
+#
+#                     # make dataframe for coverage rank and value
+#                     data.frame(coverage_rank = c(1:41),
+#                                coverage = .coverage_seq) %>%
+#
+#                     # calculate sample size in pilot community at each coverage interval,
+#                     # excluding rank 41 (100%), because that doesn't exist.
+#                     dplyr::rowwise() %>%
+#                     dplyr::mutate(n_sites = if (coverage_rank <= 40) find_eff_sites(pilot_coverage, coverage) else NA) %>%
+#                     dplyr::ungroup() %>%
+#                     dplyr::mutate(include = ifelse(n_sites < 6, F, T)) %>%
+#                     dplyr::mutate(sec_axis_label = paste0(n_sites))#,
+#                     # add variable to exclude recommended <= 5 sites
+#
+#
+#                   ) # end switch
+#
+#
+#  }
+#
+#  # then find number of samples to reach the targets in coverage_seq
+#  coverage_labels <- switch(
+#    method,
+#    "single" = data.frame(coverage_rank = c(1:41),
+#                          coverage = coverage_seq) %>%
+#      dplyr::rowwise() %>%
+#      dplyr::mutate(n_sites = if (coverage_rank <= 40) find_eff_sites(pilot_coverage, coverage) else NA) %>%
+#      dplyr::ungroup() %>%
+#      dplyr::mutate(include = ifelse(n_sites < 6, F, T)) %>%
+#      dplyr::mutate(sec_axis_label = paste0(n_sites))#,
+#    #"two" =
+#  )
+#
+#  df <- df %>% dplyr::left_join(coverage_labels, dplyr::join_by(coverage, coverage_rank))
+
   # plot --------------------------------------------------------------------
 
   # funnel plot of effect size across coverage values
   p0 <- .plot_subsample_funnel(df, coverage_seq)
-
-
 
   # line plot of mean detected richness difference across coverages
   p1 <- .plot_subsample_mean(df, coverage_seq)
@@ -88,30 +142,30 @@ subsample_boots <- function(boots,
   p3 <- .plot_power_base(min_detectable, power_au, coverage_seq)
 
 
-  ## add second axis ==============================
-  # first, rescale the pilot community so that coverage reaches 1 at
-  # the number of sites at which we are missing less than half of one species
-  pilot_coverage <- .find_pilot_coverage(pilot, method, coverage_seq)
+# ## add second axis ==============================
+# # first, rescale the pilot community so that coverage reaches 1 at
+# # the number of sites at which we are missing less than half of one species
+# pilot_coverage <- .find_pilot_coverage(pilot, method, coverage_seq)
 
-  # calculate labels for second axis, corresponding to the number of samples
-  # needed in the pilot communit(y/ies), and, if applicable, the cost.
-  sec_axis_labels <- .calc_second_axis(pilot_coverage, coverage_seq, cost_per_sample, method, community_types)
-
-  # add second axis to p3 plot
-  suppressMessages(
-    suppressWarnings(
-      p3 <- p3 +
-        ggplot2::scale_x_continuous(
-          breaks = seq(1,40,by=2),
-          labels = round(coverage_seq[1:40]*100)[c(T,F)],
-          sec.axis = ggplot2::sec_axis(~.,
-                                       breaks = seq(1,40,by=2),
-                                       labels = c(sec_axis_labels[c(T,F)]),
-                                       name = "Sample n in pilot community")
-        ) +
-        ggplot2::theme(axis.text.x.top = ggplot2::element_text(hjust = c(.95,rep(.5, times = 19))))
-    )
-  )
+# # calculate labels for second axis, corresponding to the number of samples
+# # needed in the pilot communit(y/ies), and, if applicable, the cost.
+# sec_axis_labels <- .calc_second_axis(pilot_coverage, coverage_seq, cost_per_sample, method, community_types)
+#
+#  # add second axis to p3 plot
+#  suppressMessages(
+#    suppressWarnings(
+#      p3 <- p3 +
+#        ggplot2::scale_x_continuous(
+#          breaks = seq(1,40,by=2),
+#          labels = round(coverage_seq[1:40]*100)[c(T,F)],
+#          sec.axis = ggplot2::sec_axis(~.,
+#                                       breaks = seq(1,40,by=2),
+#                                       labels = c(sec_axis_labels[c(T,F)]),
+#                                       name = "Sample n in pilot community")
+#        ) +
+#        ggplot2::theme(axis.text.x.top = ggplot2::element_text(hjust = c(.95,rep(.5, times = 19))))
+#    )
+#  )
 
   ## add achieved coverage ==============================
   # since we know the number of samples in the original pilot community,

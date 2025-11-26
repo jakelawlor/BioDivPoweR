@@ -877,9 +877,9 @@
   # Note that this only happens if the communities are not both equally-sampled.
   # if they are equally sampled, we'll take rarefied richness of both of them
   rich_under <- switch(
-    bothequal,
-    `FALSE` = sum(colSums(pilot_split[[undersampled]][,-c(1:2)],)>0) %>% purrr::set_names(undersampled),
-    `TRUE` = purrr::map(
+    paste(bothequal),
+    "FALSE" = sum(colSums(pilot_split[[undersampled]][,-c(1:2)],)>0) %>% purrr::set_names(undersampled),
+    "TRUE" = purrr::map(
       .x = c(1:50),
       .f = ~sum(
         colSums(pilot_split[[undersampled]][sample(nrow(pilot_split[[undersampled]]),

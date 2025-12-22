@@ -2,3 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+git status
+git log --oneline --decorate --graph --max-count=10
+git branch -vv

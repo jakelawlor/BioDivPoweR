@@ -1,4 +1,4 @@
-# BioDivPoweR   pkgdown <img src="man/figures/logo.png" align="right" />
+# BioDivPoweR
 
 ### R package for assessing power of biodiversity monitoring sampling schemes. 
 #### Accompanying Tekwa et al. (forthcoming)

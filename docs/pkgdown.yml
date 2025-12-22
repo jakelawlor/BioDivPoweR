@@ -2,7 +2,7 @@ pandoc: '3.2'
 pkgdown: 2.1.3
 pkgdown_sha: ~
 articles: {}
-last_built: 2025-12-22T15:03Z
+last_built: 2025-12-22T15:19Z
 urls:
   reference: https://jakelawlor.github.io/BioDivPoweR/reference
   article: https://jakelawlor.github.io/BioDivPoweR/articles

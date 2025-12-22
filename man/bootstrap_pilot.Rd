@@ -15,11 +15,11 @@ bootstrap_pilot(
 )
 }
 \arguments{
-\item{pilot}{species-by-site matrix from a pilot biodiversity survey with two treatments, in which the first column lists site names or codes, the second lists the site category or treatment, and all following columns are named with species names and contain binary (0-1) values. See `data("pilot_two_trts")` for an example.}
+\item{pilot}{species-by-site matrix from a pilot biodiversity survey, either as a single treatment (matrix of multiple samples within one study area), or with two treatments (e.g., high vs. low vegetation sites, restored vs. unrestored), with a column that specifies the treatment type. Single-treatment analysis assesses the power to detect richness change within one study area over time, and two-treatment assesses the power to detect change between two site types.}
 
 \item{method}{power analysis type, `"single"` for sites with no treatment levels, `"two"` for a two-treatment analysis.}
 
-\item{category_col}{the column name in `pilot` that specifies the treatment of sampling sites.}
+\item{category_col}{the column name in `pilot` that specifies the treatment value of sampling sites, if two-treatment analysis is selected.}
 
 \item{n_boots}{The number of simulated community pairs to bootstrap, which will be compared to each other for differences in species richness. Increasing the number of bootstrapped communities should result in more effect sizes (differences in richness between simulated pairs) qualifying for the power analysis (a histogram of richness differences from `n_boots` communities will be sorted into `n_eff_size_bins`, and bins that surpass the `min_exp_n` threshold will be retained for following steps).}
 
@@ -30,10 +30,10 @@ bootstrap_pilot(
 \item{seed}{Random seed. Defaults to 1 so runs of the same data will provide the same answers, but since the simulations all rely on random draws, changing the seed will result in different answers.}
 }
 \value{
-a tibble of `min_exp_n` simulated communities, rarified to equal coverage, within all effect size bins that qualify. Additionally, prints a histogram of simulated community richness values, highlighting the bins that are kept for the next step.
+a tibble of `min_exp_n` simulated communities, rarefied to equal coverage, within all effect size bins that qualify. Additionally, prints a histogram of simulated community richness values, highlighting the bins that are kept for the next step.
 }
 \description{
-`bootstrap_two_trt` creates `n_boots` simulated communities from a pilot biodiversity survey, pulled from randomly drawn sites from the `pilot` survey, with replacement. Bootstrapped pairs are compared for differences in richness, and differences in richness (log2 ratio) are sorted into a histogram with `n_eff_size_bins` bins. When possible, `min_exp_n` experiments (pairs of simulated communities, rarefied to equal sample coverage) are retained and kept as the input for the following function.
+Creates `n_boots` simulated communities from a pilot biodiversity survey, pulled from randomly drawn sites from the `pilot` survey, with replacement. Bootstrapped pairs are compared for differences in richness, and differences in richness (log2 ratio) are sorted into a histogram with `n_eff_size_bins` bins. When possible, `min_exp_n` experiments (pairs of simulated communities, rarefied to equal sample coverage) are retained and kept as the input for the following function, `subsample_boots()`.
 }
 \examples{
 if(FALSE){boostrap_pilot(data("pilot_single_trt"))}

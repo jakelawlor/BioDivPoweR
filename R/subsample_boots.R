@@ -2,23 +2,27 @@
 #'
 #' Downsample bootstrapped communities to lower sample sizes representing a gradient of coverage values, and assess the proportion of correct-direction detections within each coverage interval.
 #'
-#' @param data tibble of bootstrapped communities across multiple effect sizes. Output from `bootstrap_single_trt`.
-#' @param pilot original pilot study. Identical to the pilot input in `bootstrap_single_trt`
-#' @param power statistical power with which the user wants to detect richness change (defaults to 80)
-#' @param target_eff_size if supplied, the level of richness change the user wants to detect (in log2 ratio units).
+#' @param data tibble of bootstrapped communities across multiple effect sizes. Output from `bootstrap_pilot()`.
+#' @param pilot original pilot study. Identical to the pilot input in `bootstrap_pilot()`
+#' @param power statistical power with which the user wants to detect richness change (defaults to 80).
+#' @param target_eff_size if supplied, the level of richness difference the user wants to detect (in log2 ratio units). Adding a target value will change outputs of the function, specifying sampling needs to reach the richness difference target.
 #' @param cost_per_sample cost per unit sample (linear only), which will add an axis to output plots for total cost per unit power.
 #' @param seed random seed. Defaults to 1 so repeat runs will be identical, but since simulations rely on random draws, changing the seed will result in different answers.
 #'
-#' @returns list of plots.
+#' @returns List of outputs: (1) Plot of convergence of detections across community coverage in multiple effect size bins. (2) Plot of mean detection across community coverage within multiple effect size bins. (3) Plot of proportion of correct detections across community coverage within multiple effect size bins. (4) Plot of functional relationship between sample size and power to detect richness differences. (5) Tibble of input and output values.
 #' @export
+#'
+#' @examples if(FALSE){subsample_boots(boots, pilot)}
 subsample_boots <- function(boots,
                            pilot,
                            method = "single",
                            power = c(80),
                            target_eff_size = NULL,
                            cost_per_sample = NULL,
-                           seed = NULL,
-                           analysis_type = "sign"){
+                           seed = NULL){
+
+  # set analysis type - this was a variable, but will now be static.
+  analysis_type = "sign"
 
   # various checks
   if(method == "single" & sum(sapply(pilot, is.character)) > 1)

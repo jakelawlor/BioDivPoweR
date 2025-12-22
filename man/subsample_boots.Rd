@@ -11,7 +11,8 @@ subsample_boots(
   power = c(80),
   target_eff_size = NULL,
   cost_per_sample = NULL,
-  seed = NULL
+  seed = NULL,
+  analysis_type = "sign"
 )
 }
 \arguments{

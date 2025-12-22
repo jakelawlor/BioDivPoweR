@@ -7,13 +7,23 @@ Authors@R: c(
       "Jake", "Lawlor",
       email = "jake.lawlor@mail.mcgill.ca",
       role = c("aut", "cre")
+    ),
+    person(
+      "Eden", "Tekwa",
+      email = "ewtekwa@gmail.com",
+      role = c("aut")
+    ),
+    person(
+      "Jennifer", "Sunday",
+      email = "jennifer.sunday@mcgill.ca",
+      role = c("aut")
     )
   )
 Description: BioDivSampler allows users to apply a simulation-based workflow (Tekwa et al., 2025) to user-supplied pilot data from a single-treatment, or two-treatment biodiversity sampling scheme. 
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Depends: 
     R (>= 3.5)
 Imports:
@@ -23,3 +33,4 @@ Imports:
     purrr,
     tidyr,
     broom
+URL: https://jakelawlor.github.io/BioDivPoweR/

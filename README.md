@@ -65,4 +65,23 @@ This package was developed my Jake Lawlor to functionalize the workflow develope
 For questions regarding package functionality, contact Jake Lawlor at jake.lawlor@mail.mcgill.ca. For more on the methiod, our publication on the method is forthcoming. 
 
 
+## License
 
+This package is **source-available**, not open source.
+
+It is licensed under the **PolyForm Noncommercial License**.
+You may use, modify, and share this software for:
+- academic research;
+- teaching and educational purposes;
+- internal use by government agencies;
+
+provided that such use is **not in connection with paid consulting,
+contract work, or other compensated services**.
+
+You may **not** use this software for:
+- paid consulting;
+- contract work;
+- commercial or revenue-generating services.
+
+If you wish to use this software commercially, please contact us for a
+separate commercial license.

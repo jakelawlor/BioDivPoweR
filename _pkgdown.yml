@@ -1,4 +1,8 @@
 url: https://jakelawlor.github.io/BioDivPoweR/
 template:
   bootstrap: 5
+  navbar:
+  right:
+    - text: License
+      href: LICENSE.html
 

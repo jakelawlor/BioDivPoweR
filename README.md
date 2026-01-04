@@ -71,6 +71,7 @@ This package is **source-available**, not open source.
 
 It is licensed under the **PolyForm Noncommercial License**.
 You may use, modify, and share this software for:
+
 - academic research;
 - teaching and educational purposes;
 - internal use by government agencies;
@@ -79,6 +80,7 @@ provided that such use is **not in connection with paid consulting,
 contract work, or other compensated services**.
 
 You may **not** use this software for:
+
 - paid consulting;
 - contract work;
 - commercial or revenue-generating services.

@@ -8,6 +8,7 @@ This software is licensed under the **PolyForm Noncommercial License 1.0.0**
 for non-commercial use.
 
 You may use, modify, and share this software **free of charge** for:
+
 - academic research;
 - teaching and educational purposes;
 - internal use by government agencies;
@@ -26,6 +27,7 @@ The full non-commercial license text is available in:
 **Commercial use requires a separate commercial license.**
 
 Commercial use includes, without limitation:
+
 - use by consultants or contractors performing paid work for a client;
 - use in connection with contracts, tenders, or paid services;
 - use by for-profit entities for business or revenue-generating activities;

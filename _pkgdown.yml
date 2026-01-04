@@ -5,4 +5,7 @@ template:
   right:
     - text: License
       href: LICENSE.html
-
+repo:
+  url:
+    home: https://github.com/jakelawlor/biodivpower/
+  branch: master

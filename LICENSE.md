@@ -35,6 +35,7 @@ Commercial use includes, without limitation:
   perform paid work.
 
 If you wish to use this software commercially, please contact package authors.
+
 ---
 
 ## Summary (Plain English)

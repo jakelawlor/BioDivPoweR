@@ -22,6 +22,7 @@ bootstrap_pilot <- function(pilot,
                             min_exp_n = 40,
                             seed = NULL){
 
+  # function variable checks
   if(method == "two" & is.null(category_col))
     stop("Please specify the name of the treatment column in pilot dataset")
   if(method == "two")
@@ -36,10 +37,10 @@ bootstrap_pilot <- function(pilot,
 
   # create bootstrap arrays -------------------------------------------------
   cat("Bootstrapping empirical communities", n_boots,"times... \n")
-  boot_arrays <- .create_boot_arrays(pilot,
-                                     method = method,
-                                     category_col = category_col,
-                                     n_boots = n_boots)
+  boot_arrays <- .create_boot_arrays(.pilot = pilot,
+                                     .method = method,
+                                     .category_col = category_col,
+                                     .n_boots = n_boots)
 
   # rarefy pairs to equal coverage -----------------------------------------
   # cut one of each of n_boots community pairs to the number of sites
@@ -49,6 +50,7 @@ bootstrap_pilot <- function(pilot,
   # find coverage in bootstrapped communities
   eff_coverage <- .find_rarefied_coverage(boot_arrays)
 
+  # rarefy bootstrapped pairs to equal coverage
   rarefied_boots <- .rarefy_boots(boot_arrays, eff_coverage)
   rm(boot_arrays) #remove the full-length boots
 

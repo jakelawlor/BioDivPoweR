@@ -43,45 +43,6 @@
 }
 
 
-
-.plot_subsample_raw <- function(.df, .power, .coverage_seq){
-
-  vec <- unique(as.numeric(.df$eff_size))
-  half <- min(vec[vec>0])/2
-  # plot funnels within effect size bins
-  p0.2 <-   .df %>%
-    dplyr::group_by(eff_size, coverage_rank,eff_size_num) %>%
-    dplyr::mutate(eff_size = forcats::fct_reorder(eff_size, eff_size_num)) %>%
-    ggplot2::ggplot(ggplot2::aes(x = coverage_rank,
-                                 y = log2diff2,
-                                 group = trial)) +
-    ggplot2::geom_line(alpha = .7, linewidth = .1) +
-    ggplot2::geom_hline(yintercept = 0, linewidth = .4) +
-    ggplot2::geom_rect(
-      data = . %>% dplyr::group_by(eff_size) %>% dplyr::slice(1),
-      ggplot2::aes(ymax =as.numeric(as.character(eff_size)) + half,
-                           ymin = as.numeric(as.character(eff_size)) - half,
-                           xmax = Inf,
-                           xmin = -Inf),
-                       stat = "unique",
-                       alpha = .5,
-      fill = "red") +
-    ggplot2::facet_wrap(~eff_size) +
-    ggplot2::coord_cartesian(ylim = c(-.2,.2)) +
-    ggplot2::scale_x_continuous(
-      breaks = seq(1,41,by=4),
-      labels = round(c(.coverage_seq*100),0)[c(T,F,F,F)]
-    ) +
-    ggplot2::labs(x = "Coverage (%)",
-                  y = "Detected Richness Change",
-                  title = "Convergence across coverage within effect size bins") +
-    ggplot2::theme_bw()
-
-  return(p0.2)
-
-}
-
-
 #' Plot subsample means across coverage intervals
 #'
 #' Make line plot of mean effect sizes of all experiments within effect size bins across coverage intervals.
@@ -174,7 +135,7 @@
 
 
 
-#' Plot coverage by detectable effect - base only
+#' Plot coverage by detectable effect - base plot only
 #'
 #' Plot regression line and points for detectable effect across coverage values.
 #'
@@ -231,7 +192,7 @@
     ggplot2::scale_color_grey(end = .55,
                               start = 0) +
     ggplot2::scale_x_continuous(
-      breaks = (.min_detectable$coverage_rank)[-41][c(T,F)],
+      breaks = .min_detectable$coverage_rank[1:40][c(T,F)],
       labels = round(unique(.coverage_seq)[1:40]*100)[c(T,F)],
       sec.axis = ggplot2::sec_axis(~.,
                                    breaks = .min_detectable$coverage_rank[1:40][c(T,F)],
@@ -251,73 +212,6 @@
     ggplot2::guides(shape = ggplot2::guide_none())
 
   return(p3)
-
-}
-
-
-
-#' Calculate N sites for second axis - note- no longer needed!
-#'
-#' Use coverage in the pilot to estimate n samples to reach coverage intervals in pilot system.
-#'
-#' @param .pilot pilot dataset
-#' @param .method analysis method: "single" or "two" treatment.
-#' @param .coverage_seq coverage intervals to test. imported internally.
-#' @param .community_types labels for community types. imported internally.
-#' @return character vector of axis 41 axis labels, corresponding to number of sites in empirical community (or communities) to reach coverage intervals.
-#' @noRd
-.rescale_pilot <- function(.pilot, .method, .coverage_seq ){
-
-
-  # a. find average occupancy in pilot survey
-  # note that this is just mean occurrence for single-treatment,
-  # but mean treatment split by site category if two-treatment.
-  pilot_occupancy <- switch(
-    .method,
-    "single" =  colMeans(.pilot[,-c(1)]),
-    "two" =  purrr::map(
-      .x = .pilot %>% split(f = .pilot[[2]]),
-      .f = ~colMeans(.x[,-c(1:2)])[colSums(.x[,-c(1:2)]) > 0],
-      .progress = T
-    )
-  )
-
-  # b. find coverage at 1:10000 samples in pilot survey
-  # again, this will be one value if single-treatment,
-  # and a list of two if two-treatment.
-  pilot_coverage <- switch(
-    .method,
-    "single" = find_coverage(pilot_occupancy),
-    "two" = purrr::map(
-      .x = pilot_occupancy,
-      .f = ~find_coverage(occupancy = .x))
-  )
-
-  # c. find target detection rate, or the coverage at which we have <.5 of a species left to find.
-  # we'll call that the coverage target at which we've found all the species.
-  # again, this will be done separately for the two treatments in method == two
-  pilot_target_detection_rate <- switch(
-    .method,
-    "single" = find_target_detection_rate(.pilot),
-    "two" =  purrr::map(
-      .x =  .pilot %>% split(f = .pilot[[2]]),
-      .f = ~find_target_detection_rate(.x))
-  )
-
-  # d. rescale pilot coverage to zero-target detection rate, instead of 0-100
-  pilot_coverage_rescale <- switch(
-    .method,
-    "single" = pilot_coverage / pilot_target_detection_rate,
-    "two" = purrr::map2(
-      .x = pilot_coverage,
-      .y = pilot_target_detection_rate,
-      .f = ~.x/.y
-    )
-  )
-  # this establishes a finite number of samples at which we achieve 100% coverage
-  # which will be necessarily >= than the number of samples in the pilot.
-
-  return(pilot_coverage_rescale)
 
 }
 
@@ -381,14 +275,13 @@
 #' that it would take to reach each coverage interval.
 #' If applicable, add cost.
 #'
-#' @param .pilot_coverage_rescale pilot coverage at 1-1000 samples, rescaled by half a species so it reaches 1.
+#' @param .pilot_coverage pilot coverage at 1-1000 samples
 #' @param .coverage_seq sequence of coverage values in our nonlinear scale
-#' @param .cost_per_sample cost per unit sample
+#' @param .cost_per_sample cost per unit sample, if provided
 #' @param .method single or double analysis pipeline.
 #' @return character vector of axis 41 axis labels, corresponding to number of sites in empirical community (or communities) to reach coverage intervals.
 #' @noRd
 .calc_second_axis <- function(.pilot_coverage, .coverage_seq, .cost_per_sample, .method, .community_types){
-  # remove unneeded variables
 
   # e. find number of samples in the empirical community (with coverage rescaled)
   # to reach the coverage values in coverage_seq.
@@ -494,12 +387,19 @@
 }
 
 
-
-# find the achieved power at pilot_sample_size
-# here, we start with pilot sample number
-# - convert to coverage (lower of two communities, if applicable)
-# - linearly approximate coverage to coverage rank (0-40)
-# - predict regression y at x = approx rank
+#' Calculate achieved detectable effect size at pilot sample size
+#'
+#' Use linear interpolations to backcalculate the achieved minimum detectable
+#' effect from the regression that we established for detectable effect as a
+#' function of sample coverage
+#'
+#' @param .pilot species-by-site matrix from pilot study
+#' @param .pilot_coverage community coverage of pilot at 1-1000 samples
+#' @param .coverage_seq sequence of coverage values in our nonlinear scale
+#' @param .power_mod functional relationship between coverage and detectable effect
+#' @param .method single or double analysis pipeline.
+#' @return tibble of achieved minimum effect size at pilot sample size for each value power
+#' @noRd
 .calc_minEff_at_sampleSize <- function(.pilot, .pilot_coverage, .coverage_seq, .power_mod, .method){
 
   # 0. find sample sizes from 1 or both pilot communities to test
@@ -555,9 +455,14 @@
 }
 
 
-# add lines to plot for achieved minimum detectable effect and sample size
-
-
+#' Annotate achieved minimum detectable effect
+#'
+#' Add lines to base plot of achieved minimum effect size at the pilot sample size at each power
+#'
+#' @param .p3 plot of coverage-to-detectable effect relationship
+#' @param .pilot_minimum_detectable tibble of coverage value and detectable effect size at each power
+#' @return p3 with lines and annotations for "achieved" detectable effect
+#' @noRd
 .add_minEff_at_sampleSize <- function(.p3, .pilot_minimum_detectable){
 
   # add to plot
@@ -598,24 +503,21 @@
 }
 
 
-# COME BACK TO THIS
-#  .add_true_effect <- function(.boots, .method){
-#
-#    # calculate the true effect size as a reference point along the y axis.
-#
-#    true <- switch(
-#      .method,
-#
-#      # if one community, this will be one standard deviation of bootstrapped changes
-#      "single" = )
-#
-#  }
 
 
-# here we basically do the opposite as .calc_minEff_at_sampleSize
-# - start with target effect size
-# - approximate rank along regression line
-# - convert rank to sample size
+
+#' Calculate sites for target power
+#'
+#' Approximate number of samples needed to achieve target minimum detectable effect size
+#'
+#' @param .target_eff_size effect size that user wants to reliably detect
+#' @param .power_au augmented coverage-to-detectable-effect model
+#' @param .pilot_coverage community coverage of pilot community at 1-1000 samples
+#' @param .coverage_seq vector of coverage values represented on the x axis (custom scale)
+#' @param .cost_per_sample if applicable, cost per sample
+#' @param .method single- or two-treatment analysis type
+#' @return tibble of number of sites needed to reach target detectable effect size
+#' @noRd
 .calc_site_to_reach_target <- function(.target_eff_size = target_eff_size,
                                        .power_au = power_au,
                                        .pilot_coverage = pilot_coverage,
@@ -667,7 +569,7 @@
     # this one is tricky because sometimes we have to split by multiple powers,
     # and for method == "two", we have to split by multiple pilot_n_sites
     ss_to_reach_target <-
-      # first, split by power group =====
+      # first, split by power group - - - - - - -
     purrr::map(
       coverage_value_to_reach_target %>% split(f = .$power),
 
@@ -753,6 +655,14 @@
 }
 
 
+#' Annotate samples to reach target on base plot
+#'
+#' Add lines to base plot of number of samples needed to reach target detectable effect size
+#'
+#' @param .p3 plot of coverage-to-detectable effect relationship
+#' @param .target_ann tibble of coverage values needed to detect target effect size
+#' @return p3 with lines and annotations for "target" detectable effect
+#' @noRd
 .add_target_to_plot <- function(.p3, .target_ann){
 
   .p3 +
@@ -765,16 +675,6 @@
                                        color = power),
                           linetype = "dotdash") +
 
-  #  ggplot2::geom_text(data = .target_ann,
-  #                     ggplot2::aes(x = 4,
-  #                                  y = target_eff_size,
-  #                                  label = paste0("T = ",round(target_eff_size,2))),
-  #                     hjust = 0,
-  #                     vjust = -.5,
-  #                     size = 3.5,
-  #                     fontface = "bold",
-  #                     show.legend = F) +
-#
     # add vertical line at ss for target eff size
     ggplot2::geom_segment(data = .target_ann,
                           ggplot2::aes(x = coverage_rank,
@@ -783,17 +683,7 @@
                                        yend = target_eff_size,
                                        color = power),
                           linetype = "dotdash") +
-   # ggplot2::geom_text(data = .target_ann,
-   #                    ggplot2::aes(x = coverage_rank,
-   #                                 y = 0.03,
-   #                                 label = paste0("T = ",ann),
-   #                                 color = power),
-   #                    show.legend = F,
-   #                    hjust = -.1,
-   #                    vjust = 1,
-   #                    size = 3.5,
-   #                    lineheight = .85,
-   #                    fontface = "bold") +
+
     # add label in corner listing both values
     ggplot2::geom_label(data = .target_ann,
                        ggplot2::aes(x = coverage_rank,
@@ -813,7 +703,14 @@
 
 
 
-
+#' Calculate true effect
+#'
+#' For two-treatment comparison, calculate the true difference in richness between the two input communities, which will be equal to richness in the undersampled community - rarefied richness in 50 bootstrapped iterations of the oversampled community
+#'
+#' @param .pilot species-by-site matrix of pilot sample
+#' @param .pilot_coverage vector of coverage values at 1-1000 samples in pilot community
+#' @return tibble of values for pilot community
+#' @noRd
 .calc_true_effect <- function(.pilot, .pilot_coverage){
 
   # for two-treatment, first find n_sites for equal coverage
@@ -830,11 +727,6 @@
     dplyr::bind_rows() %>%
     purrr::set_names(paste0("raw_sample_size.",names(.)))
 
-  #pilot_cov <- purrr::map(
-  #  .x = pilot_split,
-  #  .f = ~find_coverage(colMeans(.x[,-c(1:2)])[colSums(.x[,-c(1:2)]) > 0],
-  #                      k = nrow(.x))
-  #)
 
   # find the minimum coverage of the two communities at their original samples size
   min_cov <- min(.pilot_coverage[[1]][raw_sample_size[[1]]],
@@ -922,8 +814,16 @@
 }
 
 
-# just get richness values and sample size for single-treatment community
-.calc_true_effect_single <- function(.pilot, .pilot_coverage){
+
+#' find pilot values; single
+#'
+#' Calculate raw sample size, raw community coverage, and raw richness of pilot sample
+#'
+#' @param .pilot species-by-site matrix of pilot sample
+#' @param .pilot_coverage vector of coverage values at 1-1000 samples in pilot community
+#' @return tibble of values for pilot community
+#' @noRd
+.calc_raw_vals_single <- function(.pilot, .pilot_coverage){
 
 
   sample_size <- nrow(.pilot)
@@ -943,7 +843,14 @@
 }
 
 
-# add true effect size as geom_rug on plot
+#' Add true effect to plot
+#'
+#' Draw a line on the y axis of p3 to display the true effect from pilot sample (for two-treatment analysis only)
+#'
+#' @param .true_effect tibble of true richness difference between two community types
+#' @param .p3 ggplot of coverage-to-detectable-effect relationship
+#' @return p3 with a line marking "true" effect on the y axis
+#' @noRd
 .add_true_effect <- function(.true_effect, .p3){
 
 

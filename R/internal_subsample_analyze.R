@@ -1,5 +1,3 @@
-
-
 #' Find minimum detectable effect size
 #'
 #' Identify the smallest effect size for which the proportion correct detections is >= target power for every coverage interval

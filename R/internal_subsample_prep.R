@@ -1,4 +1,4 @@
-#' Subsample bootstrap matrices
+#' Downsample bootstrap matrices
 #'
 #' downsample bootstrap community pairs to test for differences at coverages in coverage_seq
 #'
@@ -15,7 +15,7 @@
   new_cols <- c(paste0(.community_types,".n_to_check"), paste0(.community_types,".richness"))
 
   # find n sites to sample ------
-  # first, find the number of sites that correspond to each of the target coverages.
+  # first, find the number of sites that correspond to each of the target coverage values in .coverage_seq.
   # here, we apply find_eff_sites() to each bootstrap community's coverage vector,
   # but instead of .01-1, the targets are scaled to the max coverage value for the communty
   # so that 100% cover will be the full number of sites.
@@ -24,13 +24,13 @@
       !!(new_cols[1]) := purrr::map(
         .x = get(old_cols[3]),
         .f = ~find_eff_sites(coverage_vec = .x,
-                                             target = .coverage_seq*max(.x)
+                             target = .coverage_seq*max(.x) # scale to 100%
         )
       ),
       !!(new_cols[2]) := purrr::map(
         .x = get(old_cols[4]),
         .f = ~find_eff_sites(coverage_vec = .x,
-                                             target = .coverage_seq*max(.x))
+                             target = .coverage_seq*max(.x)) # scale to 100%
       ),
     )
   # this adds two columns: {group1}.n_to_check and {group2}.n_to_check
@@ -103,7 +103,7 @@
   # find differences in richness between community 1 and community 2
   # at sample sizes that represent each coverage step.
   df <- .subsamples %>%
-    # keep only effect size, and richness vectors at the coverage waypoints
+    # keep only effect size, and richness vectors at the coverage waypoints in coverage_seq
     dplyr::select(eff_size, dplyr::contains(".richness")) %>%
     dplyr::group_by(eff_size) %>%
     # add trial (which will be the number of repeats within each effect size bin)
@@ -111,8 +111,10 @@
     # unnest list columns
     tidyr::unnest(dplyr::contains(".richness")) %>%
     dplyr::group_by(eff_size,trial) %>%
+    # add coverage value (coverage_seq) and rank value (1-41)
     dplyr::mutate(coverage = .coverage_seq) %>%
     dplyr::mutate(coverage_rank = 1:(dplyr::n())) %>%
+    # find richness difference between communities at each coverage value
     dplyr::ungroup() %>%
     dplyr::mutate(log2diff = log2(
       get(paste0(.community_types[[2]],".richness")) / get(paste0(.community_types[[1]],".richness"))
@@ -124,9 +126,6 @@
                                                log2diff == Inf ~ max(log2diff[is.finite(log2diff)], na.rm=T),
                                                is.na(log2diff) ~ 0,
                                                TRUE ~ log2diff)) %>%
-    # note that in rare cases, log2diff is Inf when comm2_rich == 0,
-    # not sure what we should do with this in the future, but let's
-    # manually change for now.
     dplyr::mutate(eff_size_num = as.numeric(eff_size))
   rm(.subsamples)
 
@@ -141,113 +140,19 @@
 #' @param .df long-format tibble of detected changes in every qualifying experiment across coverage values
 #' @return summarized df displaying number and proportion of correct-direction detections of all experiments within effect size bins and coverage intervals
 #' @noRd
-.census_proportion_correct <- function(.df, .analysis_type){
-
-
-  # find 1/2 bin width (center of smallest bin / 2)
-  if(.analysis_type != "sign"){
-    vec <- unique(.df$eff_size_num)
-    half <- min(vec[vec > 0])/2 # find half of smallest positive bin
-    half2 <- abs(max(vec[vec<0])/2) # find half of negative smallest bin
-    stopifnot(half == half2) # make sure they're the same
-  }
-
-# .df %>% dplyr::group_by(eff_size_num) %>%
-#   dplyr::select(eff_size_num, coverage, log2diff2, coverage_rank) %>%
-#   dplyr::filter(coverage_rank > 36,
-#                 eff_size_num > 0) %>%
-#   dplyr::mutate(
-#     eff_size_num_high = eff_size_num + half,
-#     eff_size_num_low = eff_size_num - half
-#   ) %>%
-#   dplyr::slice(1:4) %>%
-#   dplyr::mutate(correct = dplyr::case_when(
-#     eff_size_num < 0 ~ ifelse(log2diff2 < 0 & log2diff2 > (eff_size_num - half),T,F),
-#     eff_size_num > 0 ~ ifelse(log2diff2 > 0 & log2diff2 > (eff_size_num + half),T,F),
-#     eff_size_num == 0 ~ ifelse(abs(log2diff2) == 0,T,F))
-#   )
-
- #df %>% filter(eff_size_num ==vec[1]) %>%
- #  filter(coverage_rank %in% c(1,10,20,30,40)) %>%
- #  dplyr::mutate(correct = dplyr::case_when(
- #    eff_size_num < 0 ~ ifelse(log2diff2 < 0 & log2diff2 >= (eff_size_num - half),T,F),
- #    eff_size_num > 0 ~ ifelse(log2diff2 > 0 & log2diff2 <= (eff_size_num + half),T,F),
- #    eff_size_num == 0 ~ ifelse(log2diff2 <= half & log2diff2 >= half*-1,T,F))
- #  ) %>%
- #  ggplot() +
- #  geom_vline(aes(xintercept = eff_size_num - half ), linewidth = .2 )+
- #  geom_vline(aes(xintercept = eff_size_num + half ), linewidth = .2 )+
- #  geom_vline(xintercept = 0, linetype = "dotted")+
- #  geom_histogram(aes(x = log2diff2,
- #                     fill = correct),
- #                 boundary = 0,
- #                 binwidth = half) +
- #  geom_rect(data = . %>% group_by(coverage_rank) %>% slice(1),
- #            aes(xmin = eff_size_num - half,
- #                xmax = eff_size_num + half,
- #                ymin = -Inf,
- #                ymax = Inf),
- #            fill = "grey80",
- #            alpha = .5)+
- #
- #  geom_vline(aes(xintercept = eff_size_num - half ), linewidth = .1 )+
- #  geom_vline(aes(xintercept = eff_size_num + half ), linewidth = .1 )+
- #
- #  facet_wrap(~coverage_rank) +
- #  coord_cartesian(xlim = c(-.5,.5))
+.census_proportion_correct <- function(.df){
 
   # find proportion correct based on analysis type
-  prop_correct1 <- switch(
-    .analysis_type,
+  prop_correct1 = .df %>%
+    # first calculate correct sign, except in zero effect size bin
+    dplyr::mutate(correct =
+                    ifelse(sign(log2diff2) == sign(eff_size_num), T,F)
+    )
 
-    # first, if analysis is type "sign": --------
-    "sign" = .df %>%
-      # first calculate correct sign, except in zero effect size bin
-      dplyr::mutate(correct = ifelse(sign(log2diff2) == sign(eff_size_num),
-                                                          T,F)
-                      #dplyr::case_when(
-                      #  # when eff_size is not zero, calculate whether detected change is same
-                      #  # sign as true change
-                      #  eff_size_num != 0 ~ ifelse(sign(log2diff2) == sign(eff_size_num),
-                      #                             T,F),
-                      #  # when eff size is zero, calculate whether log2 def is also zero
-                      #  eff_size_num == 0 ~ ifelse(abs(log2diff2) == 0,
-                      #                             T,F))
-                      ),
 
-    # option 2: at least
-    # detections will be considered correct when they:
-    # - are the same sign as true difference
-    # - are less than or equal to the magnitude of the true difference,
-    # so that when you detect a difference,
-    # you know the difference is at least that big.
-    "at_least" = .df %>%
-      dplyr::mutate(correct = dplyr::case_when(
-        eff_size_num < 0 ~ ifelse(log2diff2 < 0 & log2diff2 >= (eff_size_num - half),T,F),
-        eff_size_num > 0 ~ ifelse(log2diff2 > 0 & log2diff2 <= (eff_size_num + half),T,F),
-        eff_size_num == 0 ~ ifelse(log2diff2 <= half & log2diff2 >= half*-1,T,F))
-      ),
 
-    # OPTION 3:
-    # in this option, detections will be considered correct if they:
-    # - are inside the bounds of their effect size bin
-    "inside" = .df %>%
-      dplyr::mutate(correct = ifelse(log2diff > eff_size_num - half &
-                                       log2diff < eff_size_num + half, T, F))
-  )
-
- # prop_correct1 %>% mutate(abs_eff_size = abs(eff_size_num)) %>%
- #   filter(abs_eff_size == .166) %>%
- #   filter(coverage_rank > 30) %>%
- #   dplyr::select(eff_size_num, coverage, log2diff2, coverage_rank, correct) %>%
- #   dplyr::mutate(
- #     eff_size_num_high = eff_size_num + half,
- #     eff_size_num_low = eff_size_num - half
- #   ) %>%
- #   print(n = Inf)
-
+  # summarize proportion correct across replicates
   prop_correct2 <- prop_correct1 %>%
-
     dplyr::mutate(abs_eff_size = abs(eff_size_num)) %>%
     dplyr::group_by(abs_eff_size, coverage_rank, coverage,sec_axis_labels) %>%
     dplyr::summarize(n_correct  = sum(correct),
@@ -264,7 +169,13 @@
 }
 
 
-
+#' Census proportion correct
+#'
+#' Find proportion of `min_exp_n` (or `min_exp_n`*2 for absolute valued bins) in all qualifying effect size bins across coverage values
+#'
+#' @param .df long-format tibble of detected changes in every qualifying experiment across coverage values
+#' @return summarized df displaying number and proportion of correct-direction detections of all experiments within effect size bins and coverage intervals
+#' @noRd
 .get_out_df <- function(.pilot,
                         .true,
                         .pilot_minimum_detectable,

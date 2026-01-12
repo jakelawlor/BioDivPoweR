@@ -9,12 +9,12 @@
 #' @noRd
 .extract_ids_to_keep <- function(.p3, .summary, .min_exp_n){
 
+  # find breaks from the ggplot histogram for bins that have over min_exp_n.
   p3_breaks <- .p3 %>% ggplot2::layer_data() %>%
     dplyr::select(xmin,xmax,count,x) %>%
     dplyr::mutate(x = round(x,3)) %>%
     dplyr::mutate(iter = 1:nrow(.)) %>%
-    dplyr::filter(count >= .min_exp_n,
-                  x != 0) %>%
+    dplyr::filter(count >= .min_exp_n) %>%
     split(f = .$iter)
 
   # make a list of min_exp_n pair IDS to save inside each eff_size_bin.
@@ -62,7 +62,6 @@
   )
 
   # select the correct coverage vectors,
-  # but note these are not rarefied so will need to be cut down to the new sample sizes
   rarefied_coverages_keep <- purrr::map(
     .x = .ids_to_keep,
     .f = ~list(coverage_1 = rarefied_coverages[[1]][.x],
@@ -71,6 +70,7 @@
   )
 
 
+  # convert to tibble
   boots_tibble <- purrr::map(
     .x = rarefied_boots_keep,
     .f = ~tibble::as_tibble(.x)
@@ -78,6 +78,7 @@
     dplyr::bind_rows(.id = "eff_size") %>%
     purrr::set_names(c(names(.)[1],paste0(names(.)[2:3],".matrix")))
 
+  # create coverage vectors tibble
   coverage_tibble <- purrr::map(
     .x = rarefied_coverages_keep,
     .f = ~tibble::as_tibble(.x)
@@ -87,6 +88,7 @@
 
 
   return(
+    # bind the tibbles and export
     dplyr::bind_cols(boots_tibble,
                      coverage_tibble %>%
                        dplyr::select(-eff_size))

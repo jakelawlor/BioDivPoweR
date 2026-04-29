@@ -57,7 +57,7 @@ Together, these functions produce the relationship between sample size and power
 
  <img align="left" src="man/figures/example_output.png" width=800>
 
-<br>
+<br clear="left"/>
 
 ## Contact
 

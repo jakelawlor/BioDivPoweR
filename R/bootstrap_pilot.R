@@ -25,6 +25,8 @@ bootstrap_pilot <- function(pilot,
   # function variable checks
   if(method == "two" & is.null(category_col))
     stop("Please specify the name of the treatment column in pilot dataset")
+  if(method == "single" & !is.null(category_col))
+    stop("Single-treatment analysis should not include a category column. Please use two-treatment analysis, or remove category column and try again.")
   if(method == "two")
     if(length(unique(pilot[[category_col]])) != 2)
       stop("Two-treatment pilot must have 2 levels")

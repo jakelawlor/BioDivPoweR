@@ -138,18 +138,53 @@
 #' Find proportion of `min_exp_n` (or `min_exp_n`*2 for absolute valued bins) in all qualifying effect size bins across coverage values
 #'
 #' @param .df long-format tibble of detected changes in every qualifying experiment across coverage values
+#' @param .analysis_type "sign" or "minimum"; the type of power analysis conducted
+#' @param .effect_minimum user-supplied biologically-relevant minimum effect which will form a minimum-based null hypothesis
 #' @return summarized df displaying number and proportion of correct-direction detections of all experiments within effect size bins and coverage intervals
 #' @noRd
-.census_proportion_correct <- function(.df){
+.census_proportion_correct <- function(.df, .analysis_type, .effect_minimum){
 
-  # find proportion correct based on analysis type
-  prop_correct1 = .df %>%
-    # first calculate correct sign, except in zero effect size bin
-    dplyr::mutate(correct =
-                    ifelse(sign(log2diff2) == sign(eff_size_num), T,F)
-    )
+  # if analysis type is minimum
+  # find 1/2 bin width (center of smallest bin / 2)
+  if(.analysis_type != "sign"){
+    vec <- unique(.df$eff_size_num)
+    half <- min(vec[vec > 0])/2 # find half of smallest positive bin
+    half2 <- abs(max(vec[vec<0])/2) # find half of negative smallest bin
+    stopifnot(half == half2) # make sure they're the same
+  }
 
 
+  # find the proportion of correct detections,
+  # where correct detections are defined basedon analysis type
+  # (correct sign, minimum effect, and exact effect)
+  prop_correct1 <- switch(
+
+    .analysis_type,
+
+    # first, if analysis is type "sign": --------
+    "sign" = .df %>%
+      # correct if detected sign is same as true effect
+      dplyr::mutate(correct = ifelse(sign(log2diff2) == sign(eff_size_num),
+                                     T,F)
+      ),
+
+
+    # option 2: minimum
+    # detections will be considered correct when they:
+    # - are the same sign as true difference
+    # - are greater than a user-supplied biologically-meaningfull minimum threshold
+    # so that when you detect a difference, you know it is in the correct sign
+    # and above the user-supplied value of interest.
+    # note that we'll use the absolute minimum edge of the bin of the true difference
+    "minimum" = .df %>%
+      dplyr::mutate(correct = dplyr::case_when(
+        # when effect size is negative, detected effect needs to be less than threshold + half a bin width
+        eff_size_num < 0 ~ ifelse(log2diff2 < 0 & log2diff2 <= (.effect_minimum*sign(eff_size_num) + half),T,F),
+        # when effect size is positive, detected effect needs to be greater than threshold - half a bin width
+        eff_size_num > 0 ~ ifelse(log2diff2 > 0 & log2diff2 >= (.effect_minimum - half),T,F)
+      )
+      )
+  )
 
   # summarize proportion correct across replicates
   prop_correct2 <- prop_correct1 %>%
@@ -169,12 +204,18 @@
 }
 
 
-#' Census proportion correct
+#' Format out list
 #'
-#' Find proportion of `min_exp_n` (or `min_exp_n`*2 for absolute valued bins) in all qualifying effect size bins across coverage values
+#' Create a dataframe of raw, achieved, and target values
 #'
-#' @param .df long-format tibble of detected changes in every qualifying experiment across coverage values
-#' @return summarized df displaying number and proportion of correct-direction detections of all experiments within effect size bins and coverage intervals
+#' @param .pilot pilot sample dataset
+#' @param .true detected effect sizes
+#' @param .pilot_minimum_detectable minimum detectable effect at the pilot level of sampling
+#' @param .target_ann generated annotations
+#' @param .cost_per_sample cost per sample
+#' @param .target_eff_size target effect size which user wants to confidently detect
+#' @param .method single-treatment or two-treatments analysis
+#' @return output dataframe of raw, achieved, and target differences and required sampling levels
 #' @noRd
 .get_out_df <- function(.pilot,
                         .true,

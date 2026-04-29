@@ -2,12 +2,15 @@
 #'
 #' Downsample bootstrapped communities to lower sample sizes representing a gradient of coverage values, and assess the proportion of correct-direction detections within each coverage interval.
 #'
-#' @param data tibble of bootstrapped communities across multiple effect sizes. Output from `bootstrap_pilot()`.
+#' @param boots tibble of bootstrapped communities across multiple effect sizes. Output from `bootstrap_pilot()`.
 #' @param pilot original pilot study. Identical to the pilot input in `bootstrap_pilot()`
+#' @param method "single" or "two" for single-treatment power analysis (one community over time), or two-treatment power analysis (comparing differences between two treatment communities)
 #' @param power statistical power with which the user wants to detect richness change (defaults to 80).
 #' @param target_eff_size if supplied, the level of richness difference the user wants to detect (in log2 ratio units). Adding a target value will change outputs of the function, specifying sampling needs to reach the richness difference target.
 #' @param cost_per_sample cost per unit sample (linear only), which will add an axis to output plots for total cost per unit power.
 #' @param seed random seed. Defaults to 1 so repeat runs will be identical, but since simulations rely on random draws, changing the seed will result in different answers.
+#' @param analysis_type "sign" or "minimum". Describes the type of power analysis to conduct. "sign" identifies the number of samples needed to detect an effect in the same direction as the true effect, "minimum" identifies the number of samples needed to detect an effect both in the same direction and above user-supplied biologically-relevant effect.
+#' @param effect_minimum if `analysis_type` is "minimum", a user-defined minimum effect size to form a minimum-effect null distribtuion.
 #'
 #' @returns List of outputs: (1) Plot of convergence of detections across community coverage in multiple effect size bins. (2) Plot of mean detection across community coverage within multiple effect size bins. (3) Plot of proportion of correct detections across community coverage within multiple effect size bins. (4) Plot of functional relationship between sample size and power to detect richness differences. (5) Tibble of input and output values.
 #' @export
@@ -19,13 +22,17 @@ subsample_boots <- function(boots,
                            power = c(80),
                            target_eff_size = NULL,
                            cost_per_sample = NULL,
-                           seed = NULL){
+                           seed = NULL,
+                           analysis_type = "sign",
+                           effect_minimum = NULL){
 
   # various checks
   if(method == "single" & sum(sapply(pilot, is.character)) > 1)
     stop(call.=F,"Singe-treatment analysis selected, but pilot contains multiple character columns. Please check.")
   if(method == "two" & sum(sapply(pilot, is.character)) == 1)
     stop(call.=F,"Two-treatment analysis selected, but pilot appears to be missing a category column. Please check.")
+  if(analysis_type == "minimum" & is.null(effect_minimum))
+    stop(call.=F,"For minimum threshold power analysis, please provide a minimum biologically-relevant effect size.")
 
   # set random seed
   set.seed(seed)
@@ -70,7 +77,7 @@ subsample_boots <- function(boots,
   # summarize proportion correct --------------------------------------------
   cat("Calculating proportion correct detection across subsamples...\n")
   # find proportion correct detections (same sign, or == 0 in zero bin)
-  prop_correct <- .census_proportion_correct(df)
+  prop_correct <- .census_proportion_correct(df, analysis_type, effect_minimum)
 
   p2 <- .plot_prop_correct(prop_correct, power, coverage_seq)
 
@@ -103,13 +110,22 @@ subsample_boots <- function(boots,
   pilot_minimum_detectable <- .calc_minEff_at_sampleSize(pilot, pilot_coverage, coverage_seq, power_mod, method)
   p3 <- .add_minEff_at_sampleSize(p3, pilot_minimum_detectable)
 
+  ## add user-supplied minimum threshold ========================
+  # if analysis type is "minimum", add a line at the user-defined
+  # threshold effect size. This asks, how often can we detect an effect
+  # above this threshold value.
+  if(analysis_type == "minimum"){
+    p3 <- .add_threshold_line(p3, effect_minimum)
+  }
+
   # add true effect size =================================
   # add a point along the y axis showing the probably presumed effect size
   # that could exist in our communities:
   # richness-to-rarified-richness mean for two communities
   if(method == "two"){
     true <- .calc_true_effect(pilot, pilot_coverage)
-    p3 <- .add_true_effect(true, p3)
+    # don't add line to plot -- this is retroactive power analysis; bad.
+    #p3 <- .add_true_effect(true, p3)
   }
   # or, for single community, just find raw sample size, richness, and coverage values of pilot
   if(method == "single"){

@@ -503,6 +503,33 @@
 }
 
 
+#' Annotate user-supplied minimum threshold effect size of interest
+#'
+#' Add lines to base plot of the effect size threshold of interest
+#'
+#' @param .p3 plot of coverage-to-detectable effect relationship
+#' @param .effect_threshold user-supplied threshold effect of interest
+#' @return p3 with lines and annotations for "achieved" detectable effect
+#' @noRd
+.add_threshold_line <- function(.p3, .effect_minimum){
+
+  # add to plot
+  p3 <- .p3 +
+    # add vertical line at user-supplied threshold
+    ggplot2::geom_hline(yintercept = .effect_minimum,
+                        linetype = "dotted") +
+    # add label to threshold line
+    ggplot2::annotate(geom = "text",
+                      x = 0,
+                      y = .effect_minimum,
+                      label = "Threshold",
+                      hjust = 0, vjust = -.5, size = 3.5)
+
+  return(p3)
+
+}
+
+
 
 
 

@@ -476,7 +476,7 @@
                                        yend = Inf),
                           linetype = "longdash") +
     ggplot2::geom_text(data = .pilot_minimum_detectable,
-                       ggplot2::aes(x =pilot_achieved_rank,
+                       ggplot2::aes(x = pilot_achieved_rank,
                                     y = 0.01,
                                     label = paste0("A = ",pilot_ss)),
                        hjust = -.1, vjust = 1, size = 3.5, fontface = "bold") +
@@ -492,7 +492,7 @@
     ggplot2::geom_text(data = .pilot_minimum_detectable,
                        ggplot2::aes(x =0,
                                     y = achieved_min_eff_size,
-                                    label = paste0("A = ",round(achieved_min_eff_size,2)),
+                                    label = paste0("E = ",round(achieved_min_eff_size,2)),
                                     color = power),
                        hjust = 0, vjust = -.5, size = 3.5, fontface = "bold",
                        show.legend = F)

@@ -2,7 +2,6 @@
 
 export("%>%")
 export(bootstrap_pilot)
-export(cool_matlab)
 export(find_coverage)
 export(find_eff_sites)
 export(subsample_boots)

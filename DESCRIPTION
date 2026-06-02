@@ -23,7 +23,6 @@ Description: BioDivSampler allows users to apply a simulation-based workflow (Te
 Encoding: UTF-8
 LazyData: true
 License: file LICENSE
-RoxygenNote: 7.3.3
 Depends: 
     R (>= 3.5)
 Imports:
@@ -34,3 +33,4 @@ Imports:
     tidyr,
     broom
 URL: https://jakelawlor.github.io/BioDivPoweR/
+Config/roxygen2/version: 8.0.0

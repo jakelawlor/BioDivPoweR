@@ -1,10 +1,10 @@
 #' Color palette for magenta-to-cyan colors (mimicing "cool" palette in matlab)
 #'
-#' @param x
+#' @param x arbitrary number of colors in gradient
 #'
 #' @keywords internal
 #' @returns color pallette for ggplot
-#' @export
+#' @noRd
 #'
 #' @examples cool_matlab()
 cool_matlab <- function(x = 256) {
